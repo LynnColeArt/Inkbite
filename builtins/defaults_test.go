@@ -16,7 +16,7 @@ func TestRegisterDefaultConverters(t *testing.T) {
 		names = append(names, converter.Name())
 	}
 
-	for _, want := range []string{"ipynb", "xlsx", "docx", "csv", "epub", "rss", "zip", "html", "text"} {
+	for _, want := range []string{"ipynb", "xlsx", "docx", "pdf", "csv", "epub", "rss", "zip", "html", "text"} {
 		if !slices.Contains(names, want) {
 			t.Fatalf("expected converter %q in defaults, got %v", want, names)
 		}
