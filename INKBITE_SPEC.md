@@ -30,7 +30,7 @@ The output goal is readable, normalized Markdown that preserves major structure:
 - paragraphs
 - lists
 - links
-- simple tables when cheap to extract
+- tables, with DOCX and PDF table extraction treated as first-class targets
 - section boundaries
 
 ### Explicit Non-Goals For MVP
@@ -72,9 +72,9 @@ The MVP is successful if it can:
 | EPUB | Yes | Metadata plus spine content |
 | XLSX | Yes | Sheets to Markdown tables |
 | XLS | Maybe | Optional, lower priority |
-| DOCX | Yes, reduced | Headings, paragraphs, links, basic tables |
+| DOCX | Yes, reduced | Headings, paragraphs, links, and basic tables |
 | PPTX | Yes, reduced | Slide titles, text, notes, simple tables |
-| PDF | Yes, reduced | Surface text only, best effort |
+| PDF | Yes, reduced | Surface text plus best-effort digital table extraction |
 | Images | Maybe | Metadata only, if cheap |
 | Audio | No | Defer |
 | Outlook `.msg` | No | Defer |
@@ -86,6 +86,7 @@ The MVP is successful if it can:
 For DOCX, PPTX, and PDF, "supported" means:
 
 - extract enough text to be useful as context
+- preserve simple tables when they can be detected reliably
 - preserve obvious section boundaries when possible
 - return plain Markdown, even if some structure is lost
 - prefer incomplete-but-readable output over brittle heuristics
@@ -236,7 +237,7 @@ Use stable, focused libraries where they clearly reduce effort. Avoid large depe
 | XLSX | `github.com/qax-os/excelize` | sheet extraction |
 | XLS | `github.com/extrame/xls` | optional legacy support |
 | DOCX | evaluate `github.com/gomutex/godocx` first | surface text extraction |
-| PDF | pure Go backend plus optional external `pdftotext` adapter | readable text extraction |
+| PDF | pure Go backend plus optional external backend | readable text and best-effort table extraction |
 
 ### Dependency Guidance By Format
 
@@ -263,7 +264,7 @@ MVP DOCX extraction targets:
 - headings based on paragraph style when available
 - paragraph text
 - hyperlinks
-- simple tables
+- simple tables as a required feature
 
 Explicitly ignore for MVP:
 
@@ -307,15 +308,16 @@ type PDFExtractor interface {
 MVP strategy:
 
 1. ship a pure Go text extractor backend
-2. support an optional external `pdftotext` backend for better quality when available
-3. default to plain text extraction only
+2. add best-effort table extraction for digital PDFs
+3. support an optional external backend for better quality when available
+4. default to the highest-quality available backend
 
 Do not implement in MVP:
 
 - borderless table heuristics
 - form reconstruction
 - OCR
-- page geometry-aware Markdown tables
+- full layout fidelity or page geometry parity
 
 #### ZIP
 
@@ -376,6 +378,7 @@ Good candidates:
 
 - simple DOCX
 - simple PDF
+- simple PDF tables
 - XLSX
 - EPUB
 - HTML
@@ -439,12 +442,13 @@ Exit criteria:
 ### Milestone 3: PDF Baseline
 
 - pure Go PDF backend
-- optional `pdftotext` adapter
+- best-effort digital table extraction
+- optional external backend
 - backend selection flag
 
 Exit criteria:
 
-- readable text extraction on typical digital PDFs
+- readable text extraction and table preservation on typical digital PDFs
 
 ### Milestone 4: Hardening
 
@@ -457,7 +461,7 @@ Exit criteria:
 
 ### Technical Risks
 
-- PDF extraction quality may be materially worse than Python without external help.
+- PDF table extraction quality may be materially worse than Python without external help.
 - Go DOCX/PPTX libraries may not provide enough reading fidelity, forcing direct OOXML parsing.
 - HTML-to-Markdown libraries may need customization to produce stable output.
 - Recursive ZIP conversion can become expensive on large archives if limits are not enforced.
@@ -470,7 +474,7 @@ Exit criteria:
 ## Guardrails
 
 - prefer deterministic output over clever heuristics
-- prefer readable plain text over broken tables
+- prefer readable tables when confidence is high, and readable plain text when it is not
 - keep converter contracts small and explicit
 - do not add format-specific complexity unless it materially improves context quality
 - add optional backends before adding heavy built-in heuristics

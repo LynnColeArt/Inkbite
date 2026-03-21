@@ -256,7 +256,7 @@ DOCX and PPTX both benefit from shared OOXML infrastructure.
 - extract paragraphs
 - detect headings from paragraph style where possible
 - extract hyperlinks
-- extract simple tables
+- extract simple tables as a required feature
 - optionally infer a title
 
 Explicitly defer:
@@ -304,19 +304,19 @@ Why first:
 
 This keeps PDF complexity out of the engine.
 
-### 24. Implement a pure-Go PDF text backend
+### 24. Implement a pure-Go PDF extraction backend
 
 - evaluate a pure-Go library
 - extract readable page text
+- extract best-effort digital tables
 - preserve page breaks loosely
 - return clean plain Markdown text
 
 Explicitly defer:
 
 - OCR
-- table heuristics
 - form reconstruction
-- layout-aware columns
+- full layout-aware fidelity for complex tables and columns
 
 Why next:
 
@@ -336,8 +336,8 @@ It can improve quality without forcing PDF-specific complexity into Go code.
 ### 26. Add PDF regression fixtures
 
 - digital PDF fixtures only for MVP
-- semantic assertions on key text and headings
-- no parity expectations for tables or forms
+- semantic assertions on key text, headings, table headers, and representative cell values
+- no parity expectations for complex table layout or forms
 
 Why next:
 
@@ -464,6 +464,7 @@ The first MVP should include:
 - task 22
 - task 23
 - task 24
+- task 26
 - task 27
 - task 28
 

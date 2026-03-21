@@ -3,6 +3,7 @@ package builtins
 import (
 	"github.com/LynnColeArt/Inkbite"
 	csvconv "github.com/LynnColeArt/Inkbite/converters/csv"
+	docxconv "github.com/LynnColeArt/Inkbite/converters/docx"
 	epubconv "github.com/LynnColeArt/Inkbite/converters/epub"
 	htmlconv "github.com/LynnColeArt/Inkbite/converters/html"
 	ipynbconv "github.com/LynnColeArt/Inkbite/converters/ipynb"
@@ -20,6 +21,7 @@ func RegisterDefaultConverters(engine *inkbite.Engine) {
 
 	engine.RegisterConverter(ipynbconv.New())
 	engine.RegisterConverter(xlsxconv.New())
+	engine.RegisterConverter(docxconv.New())
 	engine.RegisterConverter(csvconv.New())
 	engine.RegisterConverter(epubconv.New())
 	engine.RegisterConverter(rssconv.New())
