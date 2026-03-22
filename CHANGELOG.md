@@ -8,6 +8,8 @@ The format is intentionally lightweight at the current stage of the project.
 
 ### Added
 
+- managed optional-component foundation with `components list`, `doctor`,
+  `config show`, and `install ocr`
 - distributable Codex skill for guiding Inkbite CLI and library usage
 - basic legacy XLS extraction with formatted numeric and date rendering
 - reduced-scope PPTX extraction with support for slide order, slide titles,

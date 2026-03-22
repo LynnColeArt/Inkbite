@@ -172,6 +172,21 @@ make build
 make ci
 ```
 
+## Managed Components
+
+The CLI now includes a managed-component foundation for optional capabilities:
+
+```bash
+inkbite components list
+inkbite doctor
+inkbite config show
+inkbite install ocr
+```
+
+At the current stage, `install ocr` installs and validates the managed OCR
+helper foundation and config path. It does not yet enable OCR-backed document
+conversion by itself; OCR extraction wiring remains follow-on work.
+
 ### Example CLI Usage
 
 Convert a local file:

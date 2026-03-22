@@ -441,6 +441,133 @@ This becomes more valuable as the number of converters grows.
 - in-process extension points only
 - no subprocess or external-helper requirement in the core product
 
+## Tier 10: Managed Optional Components And OCR
+
+This tier implements [INKBITE_COMPONENTS_SPEC.md](/home/lynn/projects/inkbite/INKBITE_COMPONENTS_SPEC.md).
+
+### 37. Add component path and config helpers
+
+- choose per-platform data directories
+- add config load/save helpers
+- define install-state data structures
+
+Why first:
+
+Every optional component depends on a predictable local storage model.
+
+### 38. Add component manifest and registry support
+
+- define manifest structs
+- define bundle identity rules
+- add checksum-verification helpers
+- add install-state tracking
+
+Why next:
+
+Install flows should be data-driven, not scattered through command code.
+
+### 39. Add `components list`, `config show`, and `doctor`
+
+- expose installed component state
+- report detected backends and missing artifacts
+- add a lightweight self-test reporting path
+
+Why next:
+
+Users need observability before installation grows more complex.
+
+### 40. Add `install ocr` for CPU bundles
+
+- download the selected OCR manifest
+- download bundle files into a staging directory
+- verify checksums
+- atomically activate the installed version
+
+Why first:
+
+CPU OCR is the broadest-compatibility baseline and should arrive before GPU.
+
+### 41. Add OCR helper self-test support
+
+- define the helper invocation contract
+- run a post-install self-test
+- fail clearly without corrupting a previous working install
+
+Why next:
+
+Nominal install success is not enough; the component must actually run.
+
+### 42. Extend `ConvertOptions` with `OCRMode`
+
+- define `off`, `auto`, `images`, and `force`
+- add matching CLI flags
+- keep OCR disabled by default
+
+Why first:
+
+The product needs a stable user and API contract before converter wiring begins.
+
+### 43. Add OCR client integration
+
+- invoke the installed OCR helper only when requested
+- surface clear errors if OCR is missing
+- keep OCR out of the default conversion path
+
+Why next:
+
+This provides the reusable integration point for multiple formats.
+
+### 44. Add standalone image OCR
+
+- support direct OCR on image inputs
+- emit Markdown output that remains readable and labeled
+
+Why first:
+
+It is the simplest end-to-end OCR target.
+
+### 45. Add embedded-image OCR for DOCX and PPTX
+
+- extract embedded images
+- invoke OCR in `images`, `auto`, or `force` modes as appropriate
+- append OCR output as supplemental labeled sections
+
+Why next:
+
+OOXML containers expose images directly, making them lower-risk than scanned PDFs.
+
+### 46. Add scanned PDF OCR fallback
+
+- choose a page-rasterization strategy
+- use OCR only in `auto` or `force` modes
+- preserve existing digital-text extraction behavior
+
+Why later:
+
+Scanned PDF support is the most complex OCR path and should build on the
+earlier helper and image-based work.
+
+### 47. Add backend probing and recommendation
+
+- detect CPU, CUDA, ROCm, and Metal candidates where relevant
+- compare detected capabilities against bundle requirements
+- recommend rather than silently force a backend
+
+Why first:
+
+Backend selection should be informed by both runtime support and self-test
+results.
+
+### 48. Add GPU-specific OCR bundles
+
+- add bundle metadata for supported GPU backends
+- support explicit install override by backend
+- keep CPU fallback available
+
+Why next:
+
+GPU support should extend the same bundle system rather than fork it.
+
 ## Recommended First Execution Slice
 
 If we want the smallest meaningful implementation slice, build this subset first:
