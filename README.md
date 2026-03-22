@@ -118,7 +118,7 @@ The repository currently includes the following built-in converter set:
 | DOCX | Implemented, reduced scope | Headings, paragraphs, links, simple tables |
 | PDF | Implemented, reduced scope | Pure-Go text extraction with best-effort table heuristics |
 | PPTX | Implemented, reduced scope | Slide titles, body text, notes, simple tables |
-| XLS | Implemented, basic scope | Legacy workbook tables without advanced formatting |
+| XLS | Implemented, basic scope | Legacy workbook tables with formatted dates and numerics; formula handling remains limited |
 
 ## Explicit Non-Goals for the Current MVP
 
@@ -148,12 +148,13 @@ The repository presently has:
   `data:` URIs, and opt-in `http(s)` sources
 - reduced-scope PPTX extraction for slide titles, body text, notes, and simple tables
 - a self-contained PDF path implemented in pure Go
+- basic legacy XLS extraction with formatted date and numeric rendering
 - a passing Go test suite across the currently implemented packages
 - basic build automation and CI scaffolding
 
 The repository does not yet have:
 
-- optional XLS support
+- broad real-world legacy XLS regression coverage beyond the current basic scope
 - broad malformed-input and performance hardening
 - end-user release packaging and broader publication-oriented documentation
 
@@ -246,7 +247,7 @@ Figure 2. Development trajectory.
 ```mermaid
 flowchart LR
     A["Foundation<br/>engine, sources, normalization"]
-    B["Implemented Converters<br/>text, html, csv, rss, ipynb, zip, epub, xlsx, docx, pptx, pdf"]
+    B["Implemented Converters<br/>text, html, csv, rss, ipynb, zip, epub, xlsx, xls, docx, pptx, pdf"]
     C["Hardening<br/>fixtures, malformed input, benchmarks"]
     D["Release Readiness<br/>docs, packaging, versioning"]
     E["Broader Coverage<br/>future extensions and deeper format fidelity"]

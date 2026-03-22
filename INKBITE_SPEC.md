@@ -235,7 +235,7 @@ Use stable, focused libraries where they clearly reduce effort. Avoid large depe
 | MIME sniffing | `github.com/gabriel-vasile/mimetype` | content-based type detection |
 | HTML to Markdown | `github.com/JohannesKaufmann/html-to-markdown/v2` | HTML conversion |
 | XLSX | `github.com/qax-os/excelize` | sheet extraction |
-| XLS | `github.com/extrame/xls` | optional legacy support |
+| XLS | `github.com/shakinm/xlsReader` | basic legacy support with formatted cell recovery |
 | DOCX | evaluate `github.com/gomutex/godocx` first | surface text extraction |
 | PDF | pure Go backend | readable text and best-effort table extraction |
 

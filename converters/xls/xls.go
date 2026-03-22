@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"strconv"
 	"strings"
 
-	"github.com/extrame/xls"
+	"github.com/shakinm/xlsReader/xls"
+	"github.com/shakinm/xlsReader/xls/structure"
 
 	"github.com/LynnColeArt/Inkbite"
 )
@@ -71,20 +73,24 @@ func (c *Converter) Convert(
 		return inkbite.Result{}, err
 	}
 
-	workbook, err := xls.OpenReader(bytes.NewReader(data), "utf-8")
+	workbook, err := xls.OpenReader(bytes.NewReader(data))
 	if err != nil {
 		return inkbite.Result{}, err
 	}
 
 	var parts []string
-	for idx := 0; idx < workbook.NumSheets(); idx++ {
-		sheet := workbook.GetSheet(idx)
-		if sheet == nil {
+	for idx := 0; idx < workbook.GetNumberSheets(); idx++ {
+		sheet, err := workbook.GetSheet(idx)
+		if err != nil || sheet == nil {
 			continue
 		}
 
-		rows := sheetRows(sheet)
-		section := []string{"## " + strings.TrimSpace(sheet.Name)}
+		rows := sheetRows(&workbook, sheet)
+		name := strings.TrimSpace(sheet.GetName())
+		if name == "" {
+			name = "Sheet " + strconv.Itoa(idx+1)
+		}
+		section := []string{"## " + name}
 		if table := renderTable(rows); table != "" {
 			section = append(section, table)
 		}
@@ -96,26 +102,26 @@ func (c *Converter) Convert(
 	}, nil
 }
 
-func sheetRows(sheet *xls.WorkSheet) [][]string {
+func sheetRows(workbook *xls.Workbook, sheet *xls.Sheet) [][]string {
 	if sheet == nil {
 		return nil
 	}
 
 	var rows [][]string
-	for idx := 0; idx <= int(sheet.MaxRow); idx++ {
-		row := sheet.Row(idx)
-		if row == nil {
+	for idx := 0; idx < sheet.GetNumberRows(); idx++ {
+		row, err := sheet.GetRow(idx)
+		if err != nil || row == nil {
 			continue
 		}
-		width := row.LastCol()
-		if width <= 0 {
+		cols := row.GetCols()
+		if len(cols) == 0 {
 			continue
 		}
 
-		current := make([]string, width)
+		current := make([]string, len(cols))
 		nonEmpty := false
-		for col := 0; col < width; col++ {
-			value := strings.TrimSpace(row.Col(col))
+		for col, cell := range cols {
+			value := strings.TrimSpace(formattedCell(workbook, cell))
 			current[col] = value
 			if value != "" {
 				nonEmpty = true
@@ -126,6 +132,21 @@ func sheetRows(sheet *xls.WorkSheet) [][]string {
 		}
 	}
 	return rows
+}
+
+func formattedCell(workbook *xls.Workbook, cell structure.CellData) string {
+	if workbook == nil || cell == nil {
+		return ""
+	}
+
+	raw := strings.TrimSpace(cell.GetString())
+	xf := workbook.GetXFbyIndex(cell.GetXFIndex())
+	format := workbook.GetFormatByIndex(xf.GetFormatIndex())
+	formatted := strings.TrimSpace(format.GetFormatString(cell))
+	if formatted != "" {
+		return formatted
+	}
+	return raw
 }
 
 func renderTable(rows [][]string) string {

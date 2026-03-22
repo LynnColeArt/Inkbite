@@ -8,7 +8,7 @@ The format is intentionally lightweight at the current stage of the project.
 
 ### Added
 
-- basic legacy XLS extraction
+- basic legacy XLS extraction with formatted numeric and date rendering
 - reduced-scope PPTX extraction with support for slide order, slide titles,
   body text, notes, simple tables, and hyperlinks
 - fixture-backed regression coverage for PDF, DOCX, EPUB, PPTX, and ZIP flows
@@ -23,4 +23,6 @@ The format is intentionally lightweight at the current stage of the project.
 
 - PDF extraction is fully self-contained and no longer depends on external
   executables
+- legacy XLS extraction now uses a self-contained reader path with improved
+  formatted output for common date and numeric cells
 - README now documents the project in a formal, research-oriented tone
