@@ -1,0 +1,17 @@
+# Default ignore patterns for Qwench RangeWriter search/tree
+.git
+.qwench
+node_modules
+dist
+build
+__pycache__
+.pytest_cache
+venv
+env
+backups
+*.zip
+*.tar
+*.gz
+*.mp4
+*.mp3
+*.mov
