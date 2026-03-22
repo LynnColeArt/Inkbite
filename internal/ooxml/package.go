@@ -107,6 +107,19 @@ func (n *Node) Attr(local string) string {
 	return ""
 }
 
+// AttrNS returns the first attribute value whose namespace URI and local name match.
+func (n *Node) AttrNS(space string, local string) string {
+	if n == nil {
+		return ""
+	}
+	for _, attr := range n.Attrs {
+		if attr.Name.Space == space && strings.EqualFold(attr.Name.Local, local) {
+			return attr.Value
+		}
+	}
+	return ""
+}
+
 // Text returns the concatenated character data of the subtree.
 func (n *Node) Text() string {
 	if n == nil {

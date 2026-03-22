@@ -53,13 +53,13 @@ Figure 1. End-to-end conversion pipeline.
 
 ```mermaid
 flowchart LR
-    A[Input Source<br/>path | bytes | io.Reader | URI]
-    B[Source Resolution<br/>buffering and URI handling]
-    C[StreamInfo Enrichment<br/>user hints, extension, sniffing]
-    D[Converter Registry<br/>priority ordered]
-    E[Selected Converter]
-    F[Markdown Normalization]
-    G[Result<br/>Markdown + metadata]
+    A["Input Source<br/>path, bytes, io.Reader, URI"]
+    B["Source Resolution<br/>buffering and URI handling"]
+    C["StreamInfo Enrichment<br/>user hints, extension, sniffing"]
+    D["Converter Registry<br/>priority ordered"]
+    E["Selected Converter"]
+    F["Markdown Normalization"]
+    G["Result<br/>Markdown and metadata"]
 
     A --> B --> C --> D --> E --> F --> G
 ```
@@ -117,7 +117,7 @@ The repository currently includes the following built-in converter set:
 | XLSX | Implemented | Sheet-wise Markdown table output |
 | DOCX | Implemented, reduced scope | Headings, paragraphs, links, simple tables |
 | PDF | Implemented, reduced scope | Pure-Go text extraction with best-effort table heuristics |
-| PPTX | Planned | Reduced-scope support remains to be added |
+| PPTX | Implemented, reduced scope | Slide titles, body text, notes, simple tables |
 | XLS | Deferred / optional | Lower-priority legacy support |
 
 ## Explicit Non-Goals for the Current MVP
@@ -146,12 +146,13 @@ The repository presently has:
 - a functioning converter registry and dispatch engine
 - support for local files, `[]byte`, `io.Reader`, `io.ReadSeeker`, `file:` URIs,
   `data:` URIs, and opt-in `http(s)` sources
+- reduced-scope PPTX extraction for slide titles, body text, notes, and simple tables
 - a self-contained PDF path implemented in pure Go
 - a passing Go test suite across the currently implemented packages
+- basic build automation and CI scaffolding
 
 The repository does not yet have:
 
-- reduced-scope PPTX support
 - optional XLS support
 - broad malformed-input and performance hardening
 - end-user release packaging and broader publication-oriented documentation
@@ -161,14 +162,13 @@ The repository does not yet have:
 ### Build
 
 ```bash
-go build ./cmd/inkbite
+make build
 ```
 
 ### Verify
 
 ```bash
-go test ./...
-go vet ./...
+make ci
 ```
 
 ### Example CLI Usage
@@ -238,18 +238,18 @@ func main() {
 ## Development Trajectory
 
 The near-term trajectory of the project is to consolidate the current engine,
-extend reduced-scope office support, and harden the implemented formats through
-fixtures, malformed-input testing, and performance guardrails.
+deepen hardening across the implemented formats, and formalize release-ready
+packaging and documentation.
 
 Figure 2. Development trajectory.
 
 ```mermaid
 flowchart LR
-    A[Foundation<br/>engine, sources, normalization]
-    B[Implemented Converters<br/>text, html, csv, rss, ipynb, zip, epub, xlsx, docx, pdf]
-    C[Next Format Milestone<br/>pptx reduced extractor]
-    D[Hardening<br/>fixtures, malformed input, benchmarks]
-    E[Release Readiness<br/>docs, packaging, versioning]
+    A["Foundation<br/>engine, sources, normalization"]
+    B["Implemented Converters<br/>text, html, csv, rss, ipynb, zip, epub, xlsx, docx, pptx, pdf"]
+    C["Hardening<br/>fixtures, malformed input, benchmarks"]
+    D["Release Readiness<br/>docs, packaging, versioning"]
+    E["Broader Coverage<br/>optional xls and future extensions"]
 
     A --> B --> C --> D --> E
 ```

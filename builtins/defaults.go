@@ -8,6 +8,7 @@ import (
 	htmlconv "github.com/LynnColeArt/Inkbite/converters/html"
 	ipynbconv "github.com/LynnColeArt/Inkbite/converters/ipynb"
 	pdfconv "github.com/LynnColeArt/Inkbite/converters/pdf"
+	pptxconv "github.com/LynnColeArt/Inkbite/converters/pptx"
 	rssconv "github.com/LynnColeArt/Inkbite/converters/rss"
 	textconv "github.com/LynnColeArt/Inkbite/converters/text"
 	xlsxconv "github.com/LynnColeArt/Inkbite/converters/xlsx"
@@ -23,6 +24,7 @@ func RegisterDefaultConverters(engine *inkbite.Engine) {
 	engine.RegisterConverter(ipynbconv.New())
 	engine.RegisterConverter(xlsxconv.New())
 	engine.RegisterConverter(docxconv.New())
+	engine.RegisterConverter(pptxconv.New())
 	engine.RegisterConverter(pdfconv.New())
 	engine.RegisterConverter(csvconv.New())
 	engine.RegisterConverter(epubconv.New())

@@ -77,6 +77,20 @@ func TestChooseExtractorRejectsExternalBackendName(t *testing.T) {
 	}
 }
 
+func TestConvertRejectsMalformedPDF(t *testing.T) {
+	converter := New()
+
+	_, err := converter.Convert(
+		context.Background(),
+		bytes.NewReader([]byte("%PDF-1.4\nnot actually a PDF\n%%EOF")),
+		inkbite.StreamInfo{Extension: ".pdf"},
+		inkbite.ConvertOptions{PDFBackend: "auto"},
+	)
+	if err == nil {
+		t.Fatal("expected malformed PDF error")
+	}
+}
+
 func makeSimplePDF(text string) []byte {
 	stream := "BT\n/F1 24 Tf\n100 100 Td\n(" + escapePDFString(text) + ") Tj\nET"
 	objects := []string{
