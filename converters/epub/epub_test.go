@@ -4,46 +4,18 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"errors"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/LynnColeArt/Inkbite"
+	"github.com/LynnColeArt/Inkbite/internal/testutil"
 )
 
-func TestEPUBConversion(t *testing.T) {
-	var buf bytes.Buffer
-	zw := zip.NewWriter(&buf)
-
-	writeZipFile(t, zw, "META-INF/container.xml", `<?xml version="1.0" encoding="UTF-8"?>
-<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
-  <rootfiles>
-    <rootfile full-path="OPS/content.opf" media-type="application/oebps-package+xml"/>
-  </rootfiles>
-</container>`)
-
-	writeZipFile(t, zw, "OPS/content.opf", `<?xml version="1.0" encoding="UTF-8"?>
-<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="BookId" version="3.0">
-  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-    <dc:title>Sample Book</dc:title>
-    <dc:creator>Test Author</dc:creator>
-    <dc:language>en</dc:language>
-  </metadata>
-  <manifest>
-    <item id="chap1" href="chapter1.xhtml" media-type="application/xhtml+xml"/>
-  </manifest>
-  <spine>
-    <itemref idref="chap1"/>
-  </spine>
-</package>`)
-
-	writeZipFile(t, zw, "OPS/chapter1.xhtml", `<html><body><h1>Chapter 1</h1><p>Hello <strong>EPUB</strong></p></body></html>`)
-
-	if err := zw.Close(); err != nil {
-		t.Fatalf("Close() error = %v", err)
-	}
-
+func TestEPUBConversionFixture(t *testing.T) {
 	converter := New()
-	result, err := converter.Convert(context.Background(), bytes.NewReader(buf.Bytes()), inkbite.StreamInfo{
+	result, err := converter.Convert(context.Background(), bytes.NewReader(testutil.BuildZipFixture(t, filepath.Join("testdata", "simple"))), inkbite.StreamInfo{
 		Extension: ".epub",
 	}, inkbite.ConvertOptions{})
 	if err != nil {
@@ -59,6 +31,27 @@ func TestEPUBConversion(t *testing.T) {
 		if !strings.Contains(result.Markdown, fragment) {
 			t.Fatalf("expected %q in markdown, got %q", fragment, result.Markdown)
 		}
+	}
+}
+
+func TestEPUBRejectsMissingContainerXML(t *testing.T) {
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	writeZipFile(t, zw, "OPS/content.opf", `<?xml version="1.0" encoding="UTF-8"?><package/>`)
+	if err := zw.Close(); err != nil {
+		t.Fatalf("Close() error = %v", err)
+	}
+
+	converter := New()
+	_, err := converter.Convert(context.Background(), bytes.NewReader(buf.Bytes()), inkbite.StreamInfo{
+		Extension: ".epub",
+	}, inkbite.ConvertOptions{})
+	if err == nil {
+		t.Fatal("expected unsupported format error")
+	}
+	var unsupported inkbite.UnsupportedFormatError
+	if !errors.As(err, &unsupported) {
+		t.Fatalf("expected unsupported format error, got %v", err)
 	}
 }
 

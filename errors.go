@@ -73,3 +73,15 @@ func (e FailedAttemptsError) Error() string {
 
 	return "conversion failed: " + strings.Join(parts, "; ")
 }
+
+func (e FailedAttemptsError) Unwrap() []error {
+	if len(e.Attempts) == 0 {
+		return nil
+	}
+
+	errs := make([]error, 0, len(e.Attempts))
+	for _, attempt := range e.Attempts {
+		errs = append(errs, attempt)
+	}
+	return errs
+}

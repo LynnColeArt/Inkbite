@@ -16,6 +16,13 @@ import (
 
 const priority = 35
 
+const (
+	maxArchiveEntries               = 256
+	maxArchiveEntryBytes     uint64 = 8 << 20
+	maxArchiveTotalBytes     uint64 = 32 << 20
+	maxArchiveRecursionDepth        = 4
+)
+
 var (
 	zipExtensions = map[string]struct{}{
 		".zip": {},
@@ -23,12 +30,15 @@ var (
 	zipMIMETypes = map[string]struct{}{
 		"application/zip": {},
 	}
+	errArchiveLimit = errors.New("zip archive limit exceeded")
 )
 
 // Converter recursively processes supported files inside ZIP archives.
 type Converter struct {
 	engine *inkbite.Engine
 }
+
+type archiveDepthKey struct{}
 
 // New returns a ZIP converter.
 func New(engine *inkbite.Engine) *Converter {
@@ -80,12 +90,31 @@ func (c *Converter) Convert(
 	if err != nil {
 		return inkbite.Result{}, err
 	}
+	if depth := archiveDepthFromContext(ctx); depth >= maxArchiveRecursionDepth {
+		return inkbite.Result{}, fmt.Errorf("%w: recursion depth limit of %d", errArchiveLimit, maxArchiveRecursionDepth)
+	}
 
 	label := archiveLabel(info)
 	parts := []string{fmt.Sprintf("Content from zip file `%s`", label)}
+	var (
+		fileCount  int
+		totalBytes uint64
+	)
+	nestedCtx := context.WithValue(ctx, archiveDepthKey{}, archiveDepthFromContext(ctx)+1)
 	for _, file := range reader.File {
 		if file.FileInfo().IsDir() {
 			continue
+		}
+		fileCount++
+		if fileCount > maxArchiveEntries {
+			return inkbite.Result{}, fmt.Errorf("%w: entry limit of %d", errArchiveLimit, maxArchiveEntries)
+		}
+		if file.UncompressedSize64 > maxArchiveEntryBytes {
+			return inkbite.Result{}, fmt.Errorf("%w: entry %q exceeds size limit of %d bytes", errArchiveLimit, file.Name, maxArchiveEntryBytes)
+		}
+		totalBytes += file.UncompressedSize64
+		if totalBytes > maxArchiveTotalBytes {
+			return inkbite.Result{}, fmt.Errorf("%w: total uncompressed size limit of %d bytes", errArchiveLimit, maxArchiveTotalBytes)
 		}
 
 		rc, err := file.Open()
@@ -100,16 +129,22 @@ func (c *Converter) Convert(
 		if closeErr != nil {
 			return inkbite.Result{}, closeErr
 		}
+		if uint64(len(entryData)) > maxArchiveEntryBytes {
+			return inkbite.Result{}, fmt.Errorf("%w: entry %q exceeds size limit of %d bytes", errArchiveLimit, file.Name, maxArchiveEntryBytes)
+		}
 
 		entryInfo := &inkbite.StreamInfo{
 			Extension: strings.ToLower(filepath.Ext(file.Name)),
 			Filename:  path.Base(file.Name),
 		}
 
-		result, err := c.engine.Convert(ctx, entryData, entryInfo, opts)
+		result, err := c.engine.Convert(nestedCtx, entryData, entryInfo, opts)
 		if err != nil {
 			if errors.Is(err, inkbite.ErrUnsupportedFormat) {
 				continue
+			}
+			if errors.Is(err, errArchiveLimit) {
+				return inkbite.Result{}, err
 			}
 			continue
 		}
@@ -123,6 +158,14 @@ func (c *Converter) Convert(
 	return inkbite.Result{
 		Markdown: strings.Join(parts, "\n\n"),
 	}, nil
+}
+
+func archiveDepthFromContext(ctx context.Context) int {
+	if ctx == nil {
+		return 0
+	}
+	depth, _ := ctx.Value(archiveDepthKey{}).(int)
+	return depth
 }
 
 func archiveLabel(info inkbite.StreamInfo) string {

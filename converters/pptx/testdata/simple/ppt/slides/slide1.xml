@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <p:cSld>
+    <p:spTree>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="2" name="Title 1"/>
+          <p:nvPr><p:ph type="title"/></p:nvPr>
+        </p:nvSpPr>
+        <p:txBody>
+          <a:bodyPr/>
+          <a:lstStyle/>
+          <a:p><a:r><a:t>Deck Title</a:t></a:r></a:p>
+        </p:txBody>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="3" name="Content Placeholder 2"/>
+          <p:nvPr><p:ph type="body"/></p:nvPr>
+        </p:nvSpPr>
+        <p:txBody>
+          <a:bodyPr/>
+          <a:lstStyle/>
+          <a:p>
+            <a:r><a:t xml:space="preserve">Hello </a:t></a:r>
+            <a:r>
+              <a:rPr><a:hlinkClick r:id="rIdHyper"/></a:rPr>
+              <a:t>world</a:t>
+            </a:r>
+          </a:p>
+          <a:p>
+            <a:r><a:t>Second paragraph</a:t></a:r>
+          </a:p>
+        </p:txBody>
+      </p:sp>
+      <p:graphicFrame>
+        <p:nvGraphicFramePr>
+          <p:cNvPr id="4" name="Table 4"/>
+        </p:nvGraphicFramePr>
+        <a:graphic>
+          <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table">
+            <a:tbl>
+              <a:tr>
+                <a:tc><a:txBody><a:bodyPr/><a:p><a:r><a:t>Name</a:t></a:r></a:p></a:txBody></a:tc>
+                <a:tc><a:txBody><a:bodyPr/><a:p><a:r><a:t>Role</a:t></a:r></a:p></a:txBody></a:tc>
+              </a:tr>
+              <a:tr>
+                <a:tc><a:txBody><a:bodyPr/><a:p><a:r><a:t>Ada</a:t></a:r></a:p></a:txBody></a:tc>
+                <a:tc><a:txBody><a:bodyPr/><a:p><a:r><a:t>Researcher</a:t></a:r></a:p></a:txBody></a:tc>
+              </a:tr>
+            </a:tbl>
+          </a:graphicData>
+        </a:graphic>
+      </p:graphicFrame>
+    </p:spTree>
+  </p:cSld>
+</p:sld>

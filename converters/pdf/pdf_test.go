@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/LynnColeArt/Inkbite"
+	"github.com/LynnColeArt/Inkbite/internal/testutil"
 )
 
 func TestLayoutToMarkdownConvertsTableBlocks(t *testing.T) {
@@ -53,7 +55,7 @@ func TestConvertUsesPureGoBackendWithoutPATH(t *testing.T) {
 	converter := New()
 	result, err := converter.Convert(
 		context.Background(),
-		bytes.NewReader(makeSimplePDF("Hello PDF")),
+		bytes.NewReader(testutil.LoadFixture(t, filepath.Join("testdata", "simple.pdf"))),
 		inkbite.StreamInfo{Extension: ".pdf"},
 		inkbite.ConvertOptions{PDFBackend: "auto"},
 	)
@@ -61,6 +63,24 @@ func TestConvertUsesPureGoBackendWithoutPATH(t *testing.T) {
 		t.Fatalf("Convert() error = %v", err)
 	}
 	if !strings.Contains(result.Markdown, "Hello PDF") {
+		if !strings.Contains(result.Markdown, "Fixture PDF") {
+			t.Fatalf("expected extracted PDF text, got %q", result.Markdown)
+		}
+	}
+}
+
+func TestPDFConversionFixture(t *testing.T) {
+	converter := New()
+	result, err := converter.Convert(
+		context.Background(),
+		bytes.NewReader(testutil.LoadFixture(t, filepath.Join("testdata", "simple.pdf"))),
+		inkbite.StreamInfo{Extension: ".pdf"},
+		inkbite.ConvertOptions{PDFBackend: "purego"},
+	)
+	if err != nil {
+		t.Fatalf("Convert() error = %v", err)
+	}
+	if !strings.Contains(result.Markdown, "Fixture PDF") {
 		t.Fatalf("expected extracted PDF text, got %q", result.Markdown)
 	}
 }
