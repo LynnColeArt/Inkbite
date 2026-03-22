@@ -322,16 +322,15 @@ Why next:
 
 This gives MVP coverage without external dependencies.
 
-### 25. Add an optional external `pdftotext` backend
+### 25. Harden the pure-Go PDF backend
 
-- detect backend availability
-- shell out safely
-- normalize extracted text
-- document the quality/performance tradeoff
+- improve text extraction quality on representative digital PDFs
+- refine table heuristics without adding external dependencies
+- document current quality limits clearly
 
 Why next:
 
-It can improve quality without forcing PDF-specific complexity into Go code.
+This keeps the binary self-contained while raising PDF usefulness.
 
 ### 26. Add PDF regression fixtures
 
@@ -433,13 +432,14 @@ This becomes more valuable as the number of converters grows.
 
 ### 35. Add Azure Document Intelligence integration
 
-- optional remote backend for higher-fidelity extraction
+- keep remote extraction out of scope for the core self-contained binary
+- document why this remains deferred
 
 ### 36. Design a plugin story
 
 - explicit registration
-- config-driven external converters
-- subprocess-based plugins
+- in-process extension points only
+- no subprocess or external-helper requirement in the core product
 
 ## Recommended First Execution Slice
 

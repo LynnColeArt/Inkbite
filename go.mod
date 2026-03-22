@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.0
+	github.com/dslipak/pdf v0.0.2
 	github.com/xuri/excelize/v2 v2.10.1
 	golang.org/x/net v0.50.0
 )

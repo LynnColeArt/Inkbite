@@ -54,7 +54,7 @@ The MVP is successful if it can:
 2. Handle stdin, local paths, `file:`, `data:`, and optional `http(s):` inputs through one API.
 3. Produce deterministic normalized output across runs.
 4. Avoid crashes on unsupported or malformed files and return clear errors.
-5. Cover the bulk of common ingest use cases with a single static binary, except where an optional external backend improves quality.
+5. Cover the bulk of common ingest use cases with a single static binary and no required external helpers.
 
 ## Scope
 
@@ -237,7 +237,7 @@ Use stable, focused libraries where they clearly reduce effort. Avoid large depe
 | XLSX | `github.com/qax-os/excelize` | sheet extraction |
 | XLS | `github.com/extrame/xls` | optional legacy support |
 | DOCX | evaluate `github.com/gomutex/godocx` first | surface text extraction |
-| PDF | pure Go backend plus optional external backend | readable text and best-effort table extraction |
+| PDF | pure Go backend | readable text and best-effort table extraction |
 
 ### Dependency Guidance By Format
 
@@ -309,8 +309,8 @@ MVP strategy:
 
 1. ship a pure Go text extractor backend
 2. add best-effort table extraction for digital PDFs
-3. support an optional external backend for better quality when available
-4. default to the highest-quality available backend
+3. keep the extractor self-contained inside the Go binary
+4. default to the built-in backend
 
 Do not implement in MVP:
 
@@ -347,7 +347,7 @@ Use `inkbite` as the primary binary name.
 - `-c, --charset`: charset hint
 - `--keep-data-uris`: keep inline data URIs
 - `--http`: allow remote fetches
-- `--pdf-backend`: `auto|purego|pdftotext`
+- `--pdf-backend`: `auto|purego`
 - `--list-formats`: print supported formats
 - `-v, --version`: print version
 
@@ -443,7 +443,6 @@ Exit criteria:
 
 - pure Go PDF backend
 - best-effort digital table extraction
-- optional external backend
 - backend selection flag
 
 Exit criteria:
@@ -461,7 +460,7 @@ Exit criteria:
 
 ### Technical Risks
 
-- PDF table extraction quality may be materially worse than Python without external help.
+- PDF table extraction quality may be materially worse than Python on complex files.
 - Go DOCX/PPTX libraries may not provide enough reading fidelity, forcing direct OOXML parsing.
 - HTML-to-Markdown libraries may need customization to produce stable output.
 - Recursive ZIP conversion can become expensive on large archives if limits are not enforced.
@@ -477,7 +476,7 @@ Exit criteria:
 - prefer readable tables when confidence is high, and readable plain text when it is not
 - keep converter contracts small and explicit
 - do not add format-specific complexity unless it materially improves context quality
-- add optional backends before adding heavy built-in heuristics
+- improve built-in extraction before adding heavy heuristics
 
 ## Suggested First Build Order
 
@@ -492,8 +491,7 @@ Exit criteria:
 ## Open Decisions
 
 1. Should remote HTTP fetching be enabled by default or opt-in?
-2. Is an optional external PDF backend acceptable for the first release?
-3. Do we want binary compatibility with Python CLI flags, or just conceptual compatibility?
+2. Do we want binary compatibility with Python CLI flags, or just conceptual compatibility?
 
 ## Recommendation
 

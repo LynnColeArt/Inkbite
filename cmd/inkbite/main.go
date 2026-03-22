@@ -40,7 +40,7 @@ func run() int {
 	flag.StringVar(&charset, "c", "", "charset hint")
 	flag.BoolVar(&keepDataURIs, "keep-data-uris", false, "keep inline data URIs in output")
 	flag.BoolVar(&enableHTTP, "http", false, "allow fetching http(s) URIs")
-	flag.StringVar(&pdfBackend, "pdf-backend", "auto", "pdf backend selection")
+	flag.StringVar(&pdfBackend, "pdf-backend", "auto", "pdf backend selection (auto|purego)")
 	flag.BoolVar(&listFormats, "list-formats", false, "list registered converters")
 	flag.BoolVar(&showVersion, "version", false, "print version and exit")
 	flag.BoolVar(&showVersion, "v", false, "print version and exit")

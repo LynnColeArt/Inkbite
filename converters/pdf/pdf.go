@@ -5,11 +5,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os/exec"
 	"regexp"
 	"strings"
 
 	"github.com/LynnColeArt/Inkbite"
+	"github.com/dslipak/pdf"
 )
 
 const priority = 14
@@ -27,7 +27,6 @@ var (
 
 type extractor interface {
 	Name() string
-	Available() bool
 	Extract(context.Context, []byte) (string, error)
 }
 
@@ -40,7 +39,7 @@ type Converter struct {
 func New() *Converter {
 	return &Converter{
 		extractors: []extractor{
-			pdfToTextExtractor{},
+			pureGoExtractor{},
 		},
 	}
 }
@@ -102,7 +101,7 @@ func (c *Converter) chooseExtractor(requested string) (extractor, error) {
 	requested = strings.ToLower(strings.TrimSpace(requested))
 	if requested == "" || requested == "auto" {
 		for _, candidate := range c.extractors {
-			if candidate.Available() {
+			if candidate.Name() == "purego" {
 				return candidate, nil
 			}
 		}
@@ -111,9 +110,6 @@ func (c *Converter) chooseExtractor(requested string) (extractor, error) {
 
 	for _, candidate := range c.extractors {
 		if candidate.Name() == requested {
-			if !candidate.Available() {
-				return nil, fmt.Errorf("requested PDF extractor %q is unavailable", requested)
-			}
 			return candidate, nil
 		}
 	}
@@ -121,34 +117,41 @@ func (c *Converter) chooseExtractor(requested string) (extractor, error) {
 	return nil, fmt.Errorf("unknown PDF extractor %q", requested)
 }
 
-type pdfToTextExtractor struct{}
+type pureGoExtractor struct{}
 
-func (pdfToTextExtractor) Name() string {
-	return "pdftotext"
+func (pureGoExtractor) Name() string {
+	return "purego"
 }
 
-func (pdfToTextExtractor) Available() bool {
-	_, err := exec.LookPath("pdftotext")
-	return err == nil
-}
-
-func (pdfToTextExtractor) Extract(ctx context.Context, data []byte) (string, error) {
-	cmd := exec.CommandContext(ctx, "pdftotext", "-layout", "-nopgbrk", "-enc", "UTF-8", "-", "-")
-	cmd.Stdin = bytes.NewReader(data)
-
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
-		if stderr.Len() > 0 {
-			return "", fmt.Errorf("pdftotext: %w: %s", err, strings.TrimSpace(stderr.String()))
-		}
-		return "", fmt.Errorf("pdftotext: %w", err)
+func (pureGoExtractor) Extract(ctx context.Context, data []byte) (string, error) {
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
 	}
 
-	return stdout.String(), nil
+	reader, err := pdf.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return "", fmt.Errorf("purego: %w", err)
+	}
+
+	textReader, err := reader.GetPlainText()
+	if err != nil {
+		return "", fmt.Errorf("purego: %w", err)
+	}
+
+	var out bytes.Buffer
+	if _, err := out.ReadFrom(textReader); err != nil {
+		return "", fmt.Errorf("purego: %w", err)
+	}
+
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+	}
+
+	return out.String(), nil
 }
 
 func layoutToMarkdown(input string) string {
