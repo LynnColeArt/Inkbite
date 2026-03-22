@@ -118,7 +118,7 @@ The repository currently includes the following built-in converter set:
 | DOCX | Implemented, reduced scope | Headings, paragraphs, links, simple tables |
 | PDF | Implemented, reduced scope | Pure-Go text extraction with best-effort table heuristics |
 | PPTX | Implemented, reduced scope | Slide titles, body text, notes, simple tables |
-| XLS | Deferred / optional | Lower-priority legacy support |
+| XLS | Implemented, basic scope | Legacy workbook tables without advanced formatting |
 
 ## Explicit Non-Goals for the Current MVP
 
@@ -249,7 +249,7 @@ flowchart LR
     B["Implemented Converters<br/>text, html, csv, rss, ipynb, zip, epub, xlsx, docx, pptx, pdf"]
     C["Hardening<br/>fixtures, malformed input, benchmarks"]
     D["Release Readiness<br/>docs, packaging, versioning"]
-    E["Broader Coverage<br/>optional xls and future extensions"]
+    E["Broader Coverage<br/>future extensions and deeper format fidelity"]
 
     A --> B --> C --> D --> E
 ```

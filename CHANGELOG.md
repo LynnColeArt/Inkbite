@@ -8,6 +8,7 @@ The format is intentionally lightweight at the current stage of the project.
 
 ### Added
 
+- basic legacy XLS extraction
 - reduced-scope PPTX extraction with support for slide order, slide titles,
   body text, notes, simple tables, and hyperlinks
 - fixture-backed regression coverage for PDF, DOCX, EPUB, PPTX, and ZIP flows
