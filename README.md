@@ -210,6 +210,19 @@ List registered converters:
 inkbite --list-formats
 ```
 
+## Codex Skill
+
+The repository ships a Codex skill at [skills/inkbite/SKILL.md](skills/inkbite/SKILL.md).
+Use it when an agent should learn the intended Inkbite workflow without requiring
+an MCP server.
+
+Install it into the default local skill directory with:
+
+```bash
+mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
+cp -R ./skills/inkbite "${CODEX_HOME:-$HOME/.codex}/skills/"
+```
+
 ## Library Use
 
 ```go

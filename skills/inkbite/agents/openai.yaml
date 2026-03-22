@@ -1,0 +1,4 @@
+interface:
+  display_name: "Inkbite"
+  short_description: "Convert documents to Markdown with Inkbite"
+  default_prompt: "Use $inkbite to convert a document or choose the right Inkbite workflow for this source."
