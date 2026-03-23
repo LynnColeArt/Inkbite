@@ -21,6 +21,7 @@ func (m Manager) ListComponents() ([]InstalledComponent, error) {
 	if cfg.OCR != nil && cfg.OCR.Enabled {
 		out = append(out, InstalledComponent{
 			Name:       "ocr",
+			Provider:   cfg.OCR.Provider,
 			Backend:    cfg.OCR.Backend,
 			Version:    cfg.OCR.Version,
 			InstallDir: cfg.OCR.InstallDir,
@@ -70,6 +71,7 @@ func (m Manager) Doctor() (DoctorReport, error) {
 	component := DoctorComponent{
 		Name:       "ocr",
 		Installed:  true,
+		Provider:   cfg.OCR.Provider,
 		Backend:    cfg.OCR.Backend,
 		Version:    cfg.OCR.Version,
 		InstallDir: cfg.OCR.InstallDir,
@@ -92,7 +94,7 @@ func (m Manager) Doctor() (DoctorReport, error) {
 	}
 
 	if len(component.Issues) == 0 {
-		if err := m.selfTest(component.HelperPath, component.Backend); err != nil {
+		if err := m.selfTest(component.HelperPath, component.Provider, component.Backend); err != nil {
 			component.Issues = append(component.Issues, "self-test failed: "+err.Error())
 		}
 	}

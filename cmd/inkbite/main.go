@@ -23,7 +23,7 @@ var version = "dev"
 type runtimeDeps struct {
 	version        string
 	executablePath string
-	helperSelfTest func(helperPath string, backend string) error
+	helperSelfTest func(helperPath string, provider string, backend string) error
 }
 
 func main() {
@@ -184,14 +184,14 @@ func runComponentsList(stdout io.Writer, stderr io.Writer, deps runtimeDeps) int
 	}
 
 	for _, item := range items {
-		fmt.Fprintf(stdout, "%s\tbackend=%s\tversion=%s\tpath=%s\n", item.Name, item.Backend, item.Version, item.InstallDir)
+		fmt.Fprintf(stdout, "%s\tprovider=%s\tbackend=%s\tversion=%s\tpath=%s\n", item.Name, item.Provider, item.Backend, item.Version, item.InstallDir)
 	}
 	return 0
 }
 
 func runInstall(args []string, stdout io.Writer, stderr io.Writer, deps runtimeDeps) int {
 	if len(args) == 0 {
-		fmt.Fprintln(stderr, "usage: inkbite install ocr [--backend auto|cpu|cuda|rocm|metal] [--dir path]")
+		fmt.Fprintln(stderr, "usage: inkbite install ocr [--provider builtin|paddleocr] [--backend auto|cpu|cuda|rocm|metal] [--dir path]")
 		return 1
 	}
 
@@ -199,7 +199,7 @@ func runInstall(args []string, stdout io.Writer, stderr io.Writer, deps runtimeD
 	case "ocr", "all":
 		return runInstallOCR(args[1:], stdout, stderr, deps)
 	default:
-		fmt.Fprintln(stderr, "usage: inkbite install ocr [--backend auto|cpu|cuda|rocm|metal] [--dir path]")
+		fmt.Fprintln(stderr, "usage: inkbite install ocr [--provider builtin|paddleocr] [--backend auto|cpu|cuda|rocm|metal] [--dir path]")
 		return 1
 	}
 }
@@ -209,11 +209,13 @@ func runInstallOCR(args []string, stdout io.Writer, stderr io.Writer, deps runti
 	flags.SetOutput(stderr)
 
 	var (
-		backend string
-		dir     string
+		backend  string
+		provider string
+		dir      string
 	)
 
 	flags.StringVar(&backend, "backend", "auto", "ocr backend selection (auto|cpu|cuda|rocm|metal)")
+	flags.StringVar(&provider, "provider", "builtin", "ocr provider selection (builtin|paddleocr)")
 	flags.StringVar(&dir, "dir", "", "override component base directory")
 
 	if err := flags.Parse(args); err != nil {
@@ -230,13 +232,14 @@ func runInstallOCR(args []string, stdout io.Writer, stderr io.Writer, deps runti
 		HelperSelfTest: deps.helperSelfTest,
 	}
 
-	component, err := manager.InstallOCR(backend)
+	component, err := manager.InstallOCR(backend, provider)
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
 	}
 
 	fmt.Fprintln(stdout, "installed managed ocr component")
+	fmt.Fprintf(stdout, "provider: %s\n", component.Provider)
 	fmt.Fprintf(stdout, "backend: %s\n", component.Backend)
 	fmt.Fprintf(stdout, "version: %s\n", component.Version)
 	fmt.Fprintf(stdout, "path: %s\n", component.InstallDir)
@@ -266,6 +269,7 @@ func runDoctor(stdout io.Writer, stderr io.Writer, deps runtimeDeps) int {
 		}
 
 		fmt.Fprintf(stdout, "%s: installed\n", component.Name)
+		fmt.Fprintf(stdout, "  provider: %s\n", component.Provider)
 		fmt.Fprintf(stdout, "  backend: %s\n", component.Backend)
 		fmt.Fprintf(stdout, "  version: %s\n", component.Version)
 		fmt.Fprintf(stdout, "  path: %s\n", component.InstallDir)
@@ -362,8 +366,13 @@ func runOCRHelper(args []string, stdout io.Writer, stderr io.Writer) int {
 	return 0
 }
 
-func helperSelfTest(helperPath string, backend string) error {
-	cmd := exec.Command(helperPath, "__ocr_helper", "--self-test", "--backend", backend)
+func helperSelfTest(helperPath string, provider string, backend string) error {
+	args := []string{"--self-test", "--backend", backend}
+	if provider == "builtin" {
+		args = append([]string{"__ocr_helper"}, args...)
+	}
+
+	cmd := exec.Command(helperPath, args...)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	output, err := cmd.Output()

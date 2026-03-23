@@ -10,6 +10,8 @@ The format is intentionally lightweight at the current stage of the project.
 
 - managed optional-component foundation with `components list`, `doctor`,
   `config show`, and `install ocr`
+- experimental `install ocr --provider paddleocr` path for managed CPU OCR
+  runtime setup
 - distributable Codex skill for guiding Inkbite CLI and library usage
 - basic legacy XLS extraction with formatted numeric and date rendering
 - reduced-scope PPTX extraction with support for slide order, slide titles,

@@ -181,11 +181,14 @@ inkbite components list
 inkbite doctor
 inkbite config show
 inkbite install ocr
+inkbite install ocr --provider paddleocr
 ```
 
 At the current stage, `install ocr` installs and validates the managed OCR
-helper foundation and config path. It does not yet enable OCR-backed document
-conversion by itself; OCR extraction wiring remains follow-on work.
+helper foundation and config path. The default `builtin` provider stays light
+and fast for development. An experimental `paddleocr` provider is also
+available for CPU-oriented setup through a managed Python `venv`, but OCR-backed
+document conversion wiring remains follow-on work.
 
 ### Example CLI Usage
 

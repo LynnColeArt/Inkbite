@@ -8,7 +8,7 @@ type Manager struct {
 	Version        string
 	ExecutablePath string
 	Now            func() time.Time
-	HelperSelfTest func(helperPath string, backend string) error
+	HelperSelfTest func(helperPath string, provider string, backend string) error
 }
 
 // Config captures installed optional component state.
@@ -19,6 +19,7 @@ type Config struct {
 // OCRConfig stores the installed OCR component selection.
 type OCRConfig struct {
 	Enabled    bool   `json:"enabled"`
+	Provider   string `json:"provider"`
 	Backend    string `json:"backend"`
 	Component  string `json:"component"`
 	Version    string `json:"version"`
@@ -29,6 +30,7 @@ type OCRConfig struct {
 // BundleManifest describes an installed component bundle.
 type BundleManifest struct {
 	Component    string             `json:"component"`
+	Provider     string             `json:"provider"`
 	BundleID     string             `json:"bundle_id"`
 	Version      string             `json:"version"`
 	OS           string             `json:"os"`
@@ -52,6 +54,7 @@ type BundleFile struct {
 // InstalledComponent is a high-level installed component summary.
 type InstalledComponent struct {
 	Name       string
+	Provider   string
 	Backend    string
 	Version    string
 	InstallDir string
@@ -68,6 +71,7 @@ type DoctorReport struct {
 type DoctorComponent struct {
 	Name       string
 	Installed  bool
+	Provider   string
 	Backend    string
 	Version    string
 	InstallDir string

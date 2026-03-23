@@ -53,7 +53,10 @@ func TestInstallOCRAndDoctor(t *testing.T) {
 	deps := runtimeDeps{
 		version:        "v0.1.0-test",
 		executablePath: executablePath,
-		helperSelfTest: func(helperPath string, backend string) error {
+		helperSelfTest: func(helperPath string, provider string, backend string) error {
+			if provider != "builtin" {
+				t.Fatalf("expected builtin provider, got %q", provider)
+			}
 			if backend != "cpu" {
 				t.Fatalf("expected cpu backend, got %q", backend)
 			}
@@ -80,7 +83,7 @@ func TestInstallOCRAndDoctor(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("components code = %d, stderr = %q", code, listErr.String())
 	}
-	if !strings.Contains(listOut.String(), "ocr\tbackend=cpu\tversion=v0.1.0-test") {
+	if !strings.Contains(listOut.String(), "ocr\tprovider=builtin\tbackend=cpu\tversion=v0.1.0-test") {
 		t.Fatalf("expected components list output, got %q", listOut.String())
 	}
 
@@ -104,6 +107,7 @@ func TestInstallOCRAndDoctor(t *testing.T) {
 	var cfg struct {
 		OCR struct {
 			Enabled   bool   `json:"enabled"`
+			Provider  string `json:"provider"`
 			Backend   string `json:"backend"`
 			Component string `json:"component"`
 			Version   string `json:"version"`
@@ -112,7 +116,7 @@ func TestInstallOCRAndDoctor(t *testing.T) {
 	if err := json.Unmarshal(configOut.Bytes(), &cfg); err != nil {
 		t.Fatalf("Unmarshal() error = %v", err)
 	}
-	if !cfg.OCR.Enabled || cfg.OCR.Backend != "cpu" || cfg.OCR.Version != "v0.1.0-test" {
+	if !cfg.OCR.Enabled || cfg.OCR.Provider != "builtin" || cfg.OCR.Backend != "cpu" || cfg.OCR.Version != "v0.1.0-test" {
 		t.Fatalf("unexpected config output: %s", configOut.String())
 	}
 }
@@ -129,13 +133,35 @@ func TestInstallOCRRejectsUnsupportedBackend(t *testing.T) {
 	code := run([]string{"install", "ocr", "--dir", baseDir, "--backend", "cuda"}, &stdout, &stderr, runtimeDeps{
 		version:        "test",
 		executablePath: executablePath,
-		helperSelfTest: func(helperPath string, backend string) error { return nil },
+		helperSelfTest: func(helperPath string, provider string, backend string) error { return nil },
 	})
 	if code == 0 {
 		t.Fatal("expected non-zero exit code for unsupported backend")
 	}
 	if !strings.Contains(stderr.String(), `ocr backend "cuda" is not yet available`) {
 		t.Fatalf("expected unsupported backend error, got %q", stderr.String())
+	}
+}
+
+func TestInstallOCRRejectsUnknownProvider(t *testing.T) {
+	baseDir := t.TempDir()
+	executablePath := filepath.Join(t.TempDir(), "inkbite")
+	if err := os.WriteFile(executablePath, []byte("fake executable"), 0o755); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := run([]string{"install", "ocr", "--dir", baseDir, "--provider", "mystery"}, &stdout, &stderr, runtimeDeps{
+		version:        "test",
+		executablePath: executablePath,
+		helperSelfTest: func(helperPath string, provider string, backend string) error { return nil },
+	})
+	if code == 0 {
+		t.Fatal("expected non-zero exit code for unknown provider")
+	}
+	if !strings.Contains(stderr.String(), `unknown ocr provider "mystery"`) {
+		t.Fatalf("expected unknown provider error, got %q", stderr.String())
 	}
 }
 

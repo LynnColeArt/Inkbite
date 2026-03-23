@@ -8,13 +8,14 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/LynnColeArt/Inkbite/internal/ocr"
 )
 
 // InstallOCR installs the managed OCR helper foundation for the selected backend.
-func (m Manager) InstallOCR(requestedBackend string) (InstalledComponent, error) {
+func (m Manager) InstallOCR(requestedBackend string, requestedProvider string) (InstalledComponent, error) {
 	baseDir, err := m.baseDir()
 	if err != nil {
 		return InstalledComponent{}, err
@@ -25,12 +26,40 @@ func (m Manager) InstallOCR(requestedBackend string) (InstalledComponent, error)
 		return InstalledComponent{}, err
 	}
 
+	provider, err := normalizeProvider(requestedProvider)
+	if err != nil {
+		return InstalledComponent{}, err
+	}
+
+	switch provider {
+	case "builtin":
+		return m.installOCRBuiltin(baseDir, backend)
+	case "paddleocr":
+		return m.installOCRPaddle(baseDir, backend)
+	default:
+		return InstalledComponent{}, fmt.Errorf("unknown ocr provider %q", provider)
+	}
+}
+
+func normalizeProvider(requested string) (string, error) {
+	requested = strings.ToLower(strings.TrimSpace(requested))
+	switch requested {
+	case "", "builtin":
+		return "builtin", nil
+	case "paddle", "paddleocr":
+		return "paddleocr", nil
+	default:
+		return "", fmt.Errorf("unknown ocr provider %q", requested)
+	}
+}
+
+func (m Manager) installOCRBuiltin(baseDir string, backend string) (InstalledComponent, error) {
 	executablePath, err := m.executablePath()
 	if err != nil {
 		return InstalledComponent{}, err
 	}
 
-	installDir := OCRInstallDir(baseDir, m.version())
+	installDir := OCRInstallDir(baseDir, m.version()+"-builtin")
 	helperPath := OCRHelperPath(installDir)
 
 	if err := os.RemoveAll(installDir); err != nil {
@@ -50,6 +79,7 @@ func (m Manager) InstallOCR(requestedBackend string) (InstalledComponent, error)
 
 	manifest := BundleManifest{
 		Component: "ocr",
+		Provider:  "builtin",
 		BundleID:  fmt.Sprintf("ocr-builtin-%s-%s-%s", backend, runtime.GOOS, runtime.GOARCH),
 		Version:   m.version(),
 		OS:        runtime.GOOS,
@@ -69,7 +99,7 @@ func (m Manager) InstallOCR(requestedBackend string) (InstalledComponent, error)
 		return InstalledComponent{}, err
 	}
 
-	if err := m.selfTest(helperPath, backend); err != nil {
+	if err := m.selfTest(helperPath, manifest.Provider, backend); err != nil {
 		return InstalledComponent{}, err
 	}
 
@@ -80,6 +110,7 @@ func (m Manager) InstallOCR(requestedBackend string) (InstalledComponent, error)
 	}
 	cfg.OCR = &OCRConfig{
 		Enabled:    true,
+		Provider:   manifest.Provider,
 		Backend:    backend,
 		Component:  manifest.BundleID,
 		Version:    manifest.Version,
@@ -91,15 +122,16 @@ func (m Manager) InstallOCR(requestedBackend string) (InstalledComponent, error)
 
 	return InstalledComponent{
 		Name:       "ocr",
+		Provider:   manifest.Provider,
 		Backend:    backend,
 		Version:    manifest.Version,
 		InstallDir: installDir,
 	}, nil
 }
 
-func (m Manager) selfTest(helperPath string, backend string) error {
+func (m Manager) selfTest(helperPath string, provider string, backend string) error {
 	if m.HelperSelfTest != nil {
-		return m.HelperSelfTest(helperPath, backend)
+		return m.HelperSelfTest(helperPath, provider, backend)
 	}
 	return ocr.SelfTest(backend)
 }
