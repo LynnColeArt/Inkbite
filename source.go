@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -139,7 +140,12 @@ func (e *Engine) resolveURI(
 			return resolvedSource{}, fmt.Errorf("http %d for %s", resp.StatusCode, raw)
 		}
 
-		data, err := io.ReadAll(resp.Body)
+		limit := opts.maxHTTPBytes()
+		if resp.ContentLength > limit {
+			return resolvedSource{}, fmt.Errorf("%w: %s exceeds %d bytes", ErrRemoteTooLarge, raw, limit)
+		}
+
+		data, err := readAllWithLimit(resp.Body, limit)
 		if err != nil {
 			return resolvedSource{}, err
 		}
@@ -168,6 +174,21 @@ func (e *Engine) resolveURI(
 	default:
 		return resolvedSource{}, fmt.Errorf("%w: unsupported URI scheme %q", ErrInvalidSource, parsed.Scheme)
 	}
+}
+
+func readAllWithLimit(r io.Reader, limit int64) ([]byte, error) {
+	if limit <= 0 {
+		return io.ReadAll(r)
+	}
+
+	data, err := io.ReadAll(io.LimitReader(r, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > limit {
+		return nil, fmt.Errorf("%w: exceeds %d bytes", ErrRemoteTooLarge, limit)
+	}
+	return data, nil
 }
 
 func looksLikeURI(raw string) bool {
@@ -209,8 +230,15 @@ func fileURIToPath(u *url.URL) (string, error) {
 	if p == "" {
 		return "", errors.New("empty file URI path")
 	}
+	if runtime.GOOS == "windows" && len(p) >= 3 && p[0] == '/' && isWindowsDriveLetter(p[1]) && p[2] == ':' {
+		return p[1:], nil
+	}
 
 	return p, nil
+}
+
+func isWindowsDriveLetter(b byte) bool {
+	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z')
 }
 
 func parseDataURI(raw string) (string, map[string]string, []byte, error) {

@@ -2,10 +2,13 @@ package inkbite
 
 import "net/http"
 
+const DefaultMaxHTTPBytes int64 = 32 << 20
+
 // ConvertOptions controls per-conversion behavior.
 type ConvertOptions struct {
 	KeepDataURIs bool
 	EnableHTTP   bool
+	MaxHTTPBytes int64
 	PDFBackend   string
 }
 
@@ -19,4 +22,11 @@ func WithHTTPClient(client *http.Client) Option {
 			e.httpClient = client
 		}
 	}
+}
+
+func (o ConvertOptions) maxHTTPBytes() int64 {
+	if o.MaxHTTPBytes > 0 {
+		return o.MaxHTTPBytes
+	}
+	return DefaultMaxHTTPBytes
 }

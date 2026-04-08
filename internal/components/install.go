@@ -143,6 +143,13 @@ func (m Manager) now() time.Time {
 	return time.Now().UTC()
 }
 
+func (m Manager) progressf(format string, args ...any) {
+	if m.ProgressWriter == nil {
+		return
+	}
+	_, _ = fmt.Fprintf(m.ProgressWriter, format, args...)
+}
+
 func copyExecutable(srcPath string, dstPath string) (string, error) {
 	src, err := os.Open(srcPath)
 	if err != nil {

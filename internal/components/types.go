@@ -1,6 +1,9 @@
 package components
 
-import "time"
+import (
+	"io"
+	"time"
+)
 
 // Manager coordinates optional component install state.
 type Manager struct {
@@ -9,6 +12,7 @@ type Manager struct {
 	ExecutablePath string
 	Now            func() time.Time
 	HelperSelfTest func(helperPath string, provider string, backend string) error
+	ProgressWriter io.Writer
 }
 
 // Config captures installed optional component state.

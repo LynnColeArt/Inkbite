@@ -12,6 +12,8 @@ The format is intentionally lightweight at the current stage of the project.
   `config show`, and `install ocr`
 - experimental `install ocr --provider paddleocr` path for managed CPU OCR
   runtime setup
+- paddleocr installer polish with streamed progress, pinned `chardet`
+  compatibility, and a faster quieter self-test path
 - distributable Codex skill for guiding Inkbite CLI and library usage
 - basic legacy XLS extraction with formatted numeric and date rendering
 - reduced-scope PPTX extraction with support for slide order, slide titles,
@@ -23,6 +25,10 @@ The format is intentionally lightweight at the current stage of the project.
 - build automation through `Makefile`
 - continuous integration workflow for test, vet, and CLI build verification
 - release workflow for tagged builds and generated release notes
+- cross-platform CI coverage for Linux, macOS, and Windows with race detection
+  and automated `govulncheck` scanning
+- packaged release archives for Linux, macOS, and Windows with generated
+  checksum manifests
 
 ### Changed
 
@@ -31,3 +37,6 @@ The format is intentionally lightweight at the current stage of the project.
 - legacy XLS extraction now uses a self-contained reader path with improved
   formatted output for common date and numeric cells
 - README now documents the project in a formal, research-oriented tone
+- remote HTTP fetches now enforce a bounded response size limit by default
+- the module now targets Go `1.25.9` to pick up current patched standard
+  library fixes used by CI and release builds

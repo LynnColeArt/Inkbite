@@ -230,6 +230,7 @@ func runInstallOCR(args []string, stdout io.Writer, stderr io.Writer, deps runti
 		Version:        deps.version,
 		ExecutablePath: deps.executablePath,
 		HelperSelfTest: deps.helperSelfTest,
+		ProgressWriter: stderr,
 	}
 
 	component, err := manager.InstallOCR(backend, provider)

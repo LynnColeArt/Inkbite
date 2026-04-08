@@ -1,9 +1,11 @@
 package components
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,6 +17,8 @@ const (
 	paddleProvider         = "paddleocr"
 	paddleCPUWheelIndexURL = "https://www.paddlepaddle.org.cn/packages/stable/cpu/"
 	paddlePaddleVersion    = "3.2.0"
+	paddleOCRVersion       = "3.4.0"
+	paddleChardetVersion   = "5.2.0"
 	paddleHelperScriptName = "paddle_ocr_helper.py"
 )
 
@@ -45,19 +49,27 @@ func (m Manager) installOCRPaddle(baseDir string, backend string) (InstalledComp
 		}
 	}
 
-	if err := runCommand(pythonPath, "-m", "venv", venvDir); err != nil {
+	m.progressf("creating paddleocr virtual environment\n")
+	if err := runCommand(m.ProgressWriter, pythonPath, "-m", "venv", venvDir); err != nil {
 		return InstalledComponent{}, fmt.Errorf("create paddleocr venv: %w", err)
 	}
 
 	venvPython := filepath.Join(venvDir, "bin", "python")
-	if err := runCommand(venvPython, "-m", "pip", "install", "--upgrade", "pip"); err != nil {
+	m.progressf("upgrading pip in managed paddleocr environment\n")
+	if err := runCommand(m.ProgressWriter, venvPython, "-m", "pip", "install", "--upgrade", "pip"); err != nil {
 		return InstalledComponent{}, fmt.Errorf("upgrade pip: %w", err)
 	}
-	if err := runCommand(venvPython, "-m", "pip", "install", "paddlepaddle=="+paddlePaddleVersion, "-i", paddleCPUWheelIndexURL); err != nil {
+	m.progressf("installing paddlepaddle cpu runtime; this can take a while\n")
+	if err := runCommand(m.ProgressWriter, venvPython, "-m", "pip", "install", "paddlepaddle=="+paddlePaddleVersion, "-i", paddleCPUWheelIndexURL); err != nil {
 		return InstalledComponent{}, fmt.Errorf("install paddlepaddle cpu runtime: %w", err)
 	}
-	if err := runCommand(venvPython, "-m", "pip", "install", "paddleocr"); err != nil {
+	m.progressf("installing paddleocr package set\n")
+	if err := runCommand(m.ProgressWriter, venvPython, "-m", "pip", "install", "paddleocr=="+paddleOCRVersion); err != nil {
 		return InstalledComponent{}, fmt.Errorf("install paddleocr: %w", err)
+	}
+	m.progressf("normalizing python dependency pins for managed paddleocr runtime\n")
+	if err := runCommand(m.ProgressWriter, venvPython, "-m", "pip", "install", "chardet=="+paddleChardetVersion); err != nil {
+		return InstalledComponent{}, fmt.Errorf("pin chardet compatibility: %w", err)
 	}
 
 	if err := os.WriteFile(scriptPath, []byte(paddleHelperScript), 0o644); err != nil {
@@ -94,6 +106,7 @@ func (m Manager) installOCRPaddle(baseDir string, backend string) (InstalledComp
 		return InstalledComponent{}, err
 	}
 
+	m.progressf("running managed paddleocr self-test\n")
 	if err := m.selfTest(helperPath, manifest.Provider, backend); err != nil {
 		return InstalledComponent{}, err
 	}
@@ -133,11 +146,21 @@ func lookupPython() (string, error) {
 	return "", fmt.Errorf("python3 is required for ocr provider %q", paddleProvider)
 }
 
-func runCommand(name string, args ...string) error {
+func runCommand(progress io.Writer, name string, args ...string) error {
 	cmd := exec.Command(name, args...)
-	output, err := cmd.CombinedOutput()
+	var output bytes.Buffer
+	if progress != nil {
+		stream := io.MultiWriter(progress, &output)
+		cmd.Stdout = stream
+		cmd.Stderr = stream
+	} else {
+		cmd.Stdout = &output
+		cmd.Stderr = &output
+	}
+
+	err := cmd.Run()
 	if err != nil {
-		message := strings.TrimSpace(string(output))
+		message := strings.TrimSpace(output.String())
 		if message == "" {
 			message = err.Error()
 		}
@@ -152,6 +175,7 @@ set -euo pipefail
 export HOME="%s"
 export XDG_CACHE_HOME="%s"
 export PADDLE_PDX_MODEL_SOURCE="BOS"
+export PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK="True"
 exec "%s" "%s" "$@"
 `, homeDir, modelCacheDir, venvPython, scriptPath)
 
@@ -172,15 +196,22 @@ func fileSHA256(path string) string {
 
 const paddleHelperScript = `#!/usr/bin/env python3
 import argparse
+import contextlib
+import io
 import json
+import logging
+import os
 import sys
+import tempfile
 
-from paddleocr import PaddleOCR
+import paddlex.utils.logging as paddlex_logging
 
 
-def build_ocr(backend: str) -> PaddleOCR:
+def build_ocr(backend: str):
     if backend != "cpu":
         raise SystemExit(f"unsupported paddleocr backend: {backend}")
+
+    from paddleocr import PaddleOCR
 
     return PaddleOCR(
         text_detection_model_name="PP-OCRv5_mobile_det",
@@ -192,6 +223,32 @@ def build_ocr(backend: str) -> PaddleOCR:
     )
 
 
+@contextlib.contextmanager
+def capture_native_output():
+    stdout_fd = sys.__stdout__.fileno()
+    stderr_fd = sys.__stderr__.fileno()
+    saved_stdout = os.dup(stdout_fd)
+    saved_stderr = os.dup(stderr_fd)
+
+    with tempfile.TemporaryFile(mode="w+b") as stdout_tmp, tempfile.TemporaryFile(mode="w+b") as stderr_tmp:
+        try:
+            os.dup2(stdout_tmp.fileno(), stdout_fd)
+            os.dup2(stderr_tmp.fileno(), stderr_fd)
+            yield stdout_tmp, stderr_tmp
+        finally:
+            os.dup2(saved_stdout, stdout_fd)
+            os.dup2(saved_stderr, stderr_fd)
+            os.close(saved_stdout)
+            os.close(saved_stderr)
+
+
+def read_native_output(handle) -> str:
+    if handle is None:
+        return ""
+    handle.seek(0)
+    return handle.read().decode("utf-8", errors="replace").strip()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="inkbite-ocr-helper")
     parser.add_argument("--self-test", action="store_true", dest="self_test")
@@ -201,7 +258,40 @@ def main() -> int:
     if not args.self_test:
         parser.error("only --self-test is currently supported")
 
-    build_ocr(args.backend)
+    captured_stdout = io.StringIO()
+    captured_stderr = io.StringIO()
+    native_stdout = None
+    native_stderr = None
+    previous_disable = logging.root.manager.disable
+    paddlex_logger = logging.getLogger("paddlex")
+    previous_paddlex_disabled = paddlex_logger.disabled
+    previous_paddlex_level = paddlex_logger.level
+    previous_paddlex_warning = paddlex_logging.warning
+    try:
+        logging.disable(logging.CRITICAL)
+        paddlex_logger.disabled = True
+        paddlex_logger.setLevel(logging.CRITICAL + 1)
+        paddlex_logging.warning = lambda *args, **kwargs: None
+        with capture_native_output() as (native_stdout, native_stderr):
+            with contextlib.redirect_stdout(captured_stdout), contextlib.redirect_stderr(captured_stderr):
+                build_ocr(args.backend)
+    except Exception:
+        details = captured_stderr.getvalue().strip()
+        if not details:
+            details = read_native_output(native_stderr)
+        if not details:
+            details = captured_stdout.getvalue().strip()
+        if not details:
+            details = read_native_output(native_stdout)
+        if details:
+            print(details, file=sys.stderr)
+        raise
+    finally:
+        paddlex_logging.warning = previous_paddlex_warning
+        paddlex_logger.disabled = previous_paddlex_disabled
+        paddlex_logger.setLevel(previous_paddlex_level)
+        logging.disable(previous_disable)
+
     print(json.dumps({"status": "ok", "provider": "paddleocr", "backend": "cpu"}))
     return 0
 

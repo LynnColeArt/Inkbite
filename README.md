@@ -150,13 +150,13 @@ The repository presently has:
 - a self-contained PDF path implemented in pure Go
 - basic legacy XLS extraction with formatted date and numeric rendering
 - a passing Go test suite across the currently implemented packages
-- basic build automation and CI scaffolding
+- build automation, multi-platform CI coverage, and tagged release packaging
 
 The repository does not yet have:
 
 - broad real-world legacy XLS regression coverage beyond the current basic scope
 - broad malformed-input and performance hardening
-- end-user release packaging and broader publication-oriented documentation
+- broader publication-oriented documentation
 
 ## Operational Interface
 
@@ -187,8 +187,9 @@ inkbite install ocr --provider paddleocr
 At the current stage, `install ocr` installs and validates the managed OCR
 helper foundation and config path. The default `builtin` provider stays light
 and fast for development. An experimental `paddleocr` provider is also
-available for CPU-oriented setup through a managed Python `venv`, but OCR-backed
-document conversion wiring remains follow-on work.
+available for CPU-oriented setup through a managed Python `venv`, with streamed
+install progress, pinned Python compatibility fixes, and a quieter self-test
+path. OCR-backed document conversion wiring remains follow-on work.
 
 ### Example CLI Usage
 

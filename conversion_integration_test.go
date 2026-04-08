@@ -2,8 +2,10 @@ package inkbite_test
 
 import (
 	"context"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/LynnColeArt/Inkbite"
@@ -20,7 +22,12 @@ func TestConvertFileURI(t *testing.T) {
 	engine := inkbite.New()
 	builtins.RegisterDefaultConverters(engine)
 
-	result, err := engine.ConvertURI(context.Background(), "file://"+path, nil, inkbite.ConvertOptions{})
+	uriPath := filepath.ToSlash(path)
+	if !strings.HasPrefix(uriPath, "/") {
+		uriPath = "/" + uriPath
+	}
+
+	result, err := engine.ConvertURI(context.Background(), (&url.URL{Scheme: "file", Path: uriPath}).String(), nil, inkbite.ConvertOptions{})
 	if err != nil {
 		t.Fatalf("ConvertURI() error = %v", err)
 	}

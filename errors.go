@@ -10,6 +10,7 @@ var (
 	ErrUnsupportedFormat = errors.New("unsupported format")
 	ErrInvalidSource     = errors.New("invalid source")
 	ErrRemoteDisabled    = errors.New("remote fetching is disabled")
+	ErrRemoteTooLarge    = errors.New("remote response exceeds size limit")
 )
 
 // InvalidSourceError reports an unsupported source type.
