@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/LynnColeArt/Inkbite"
 	"github.com/LynnColeArt/Inkbite/builtins"
@@ -68,6 +69,7 @@ func runConvert(args []string, stdout io.Writer, stderr io.Writer, version strin
 		keepDataURIs bool
 		enableHTTP   bool
 		pdfBackend   string
+		timeout      string
 		listFormats  bool
 		showVersion  bool
 	)
@@ -83,6 +85,7 @@ func runConvert(args []string, stdout io.Writer, stderr io.Writer, version strin
 	flags.BoolVar(&keepDataURIs, "keep-data-uris", false, "keep inline data URIs in output")
 	flags.BoolVar(&enableHTTP, "http", false, "allow fetching http(s) URIs")
 	flags.StringVar(&pdfBackend, "pdf-backend", "auto", "pdf backend selection (auto|purego)")
+	flags.StringVar(&timeout, "timeout", "", "maximum conversion duration (for example 30s, 2m, 1h)")
 	flags.BoolVar(&listFormats, "list-formats", false, "list registered converters")
 	flags.BoolVar(&showVersion, "version", false, "print version and exit")
 	flags.BoolVar(&showVersion, "v", false, "print version and exit")
@@ -124,17 +127,29 @@ func runConvert(args []string, stdout io.Writer, stderr io.Writer, version strin
 		PDFBackend:   pdfBackend,
 	}
 
-	var (
-		result inkbite.Result
-		err    error
-	)
-
-	if flags.NArg() == 0 {
-		result, err = engine.ConvertReader(context.Background(), os.Stdin, info, opts)
-	} else {
-		target := strings.TrimSpace(flags.Arg(0))
-		result, err = engine.Convert(context.Background(), target, info, opts)
+	ctx := context.Background()
+	var cancel context.CancelFunc
+	if strings.TrimSpace(timeout) != "" {
+		duration, err := time.ParseDuration(timeout)
+		if err != nil {
+			fmt.Fprintf(stderr, "invalid timeout %q: %v\n", timeout, err)
+			return 1
+		}
+		if duration <= 0 {
+			fmt.Fprintf(stderr, "invalid timeout %q: duration must be positive\n", timeout)
+			return 1
+		}
+		ctx, cancel = context.WithTimeout(ctx, duration)
+		defer cancel()
 	}
+
+	result, err := runConversion(ctx, func(ctx context.Context) (inkbite.Result, error) {
+		if flags.NArg() == 0 {
+			return engine.ConvertReader(ctx, os.Stdin, info, opts)
+		}
+		target := strings.TrimSpace(flags.Arg(0))
+		return engine.Convert(ctx, target, info, opts)
+	})
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
@@ -157,6 +172,30 @@ func runConvert(args []string, stdout io.Writer, stderr io.Writer, version strin
 	}
 
 	return 0
+}
+
+type conversionResult struct {
+	result inkbite.Result
+	err    error
+}
+
+func runConversion(ctx context.Context, convert func(context.Context) (inkbite.Result, error)) (inkbite.Result, error) {
+	if _, ok := ctx.Deadline(); !ok {
+		return convert(ctx)
+	}
+
+	done := make(chan conversionResult, 1)
+	go func() {
+		result, err := convert(ctx)
+		done <- conversionResult{result: result, err: err}
+	}()
+
+	select {
+	case result := <-done:
+		return result.result, result.err
+	case <-ctx.Done():
+		return inkbite.Result{}, ctx.Err()
+	}
 }
 
 func runComponents(args []string, stdout io.Writer, stderr io.Writer, deps runtimeDeps) int {

@@ -2,11 +2,16 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/LynnColeArt/Inkbite"
 )
 
 func TestRunConvertDefaultPathBehavior(t *testing.T) {
@@ -24,6 +29,35 @@ func TestRunConvertDefaultPathBehavior(t *testing.T) {
 	}
 	if got := stdout.String(); got != "hello world\n" {
 		t.Fatalf("expected converted stdout, got %q", got)
+	}
+}
+
+func TestRunConvertRejectsInvalidTimeout(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	code := run([]string{"convert", "--timeout", "not-a-duration"}, &stdout, &stderr, runtimeDeps{version: "test"})
+	if code == 0 {
+		t.Fatal("expected non-zero exit code")
+	}
+	if !strings.Contains(stderr.String(), "invalid timeout") {
+		t.Fatalf("expected invalid timeout error, got %q", stderr.String())
+	}
+}
+
+func TestRunConversionReturnsContextError(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	cancel()
+
+	release := make(chan struct{})
+	_, err := runConversion(ctx, func(context.Context) (inkbite.Result, error) {
+		<-release
+		return inkbite.Result{Markdown: "late"}, nil
+	})
+	close(release)
+
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
 	}
 }
 
