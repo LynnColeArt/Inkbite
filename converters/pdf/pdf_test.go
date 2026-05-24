@@ -85,6 +85,24 @@ func TestPDFConversionFixture(t *testing.T) {
 	}
 }
 
+func TestPDFConversionHandlesArrayContents(t *testing.T) {
+	converter := New()
+	result, err := converter.Convert(
+		context.Background(),
+		bytes.NewReader(makeArrayContentsPDF("Hello", "array contents")),
+		inkbite.StreamInfo{Extension: ".pdf"},
+		inkbite.ConvertOptions{PDFBackend: "purego"},
+	)
+	if err != nil {
+		t.Fatalf("Convert() error = %v", err)
+	}
+	for _, want := range []string{"Hello", "array contents"} {
+		if !strings.Contains(result.Markdown, want) {
+			t.Fatalf("expected %q in extracted PDF text, got %q", want, result.Markdown)
+		}
+	}
+}
+
 func TestChooseExtractorRejectsExternalBackendName(t *testing.T) {
 	converter := New()
 
@@ -118,6 +136,38 @@ func makeSimplePDF(text string) []byte {
 		"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
 		"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 144] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
 		fmt.Sprintf("<< /Length %d >>\nstream\n%s\nendstream", len(stream), stream),
+		"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+	}
+
+	var doc bytes.Buffer
+	doc.WriteString("%PDF-1.4\n")
+
+	offsets := make([]int, len(objects)+1)
+	for idx, object := range objects {
+		offsets[idx+1] = doc.Len()
+		fmt.Fprintf(&doc, "%d 0 obj\n%s\nendobj\n", idx+1, object)
+	}
+
+	xrefOffset := doc.Len()
+	fmt.Fprintf(&doc, "xref\n0 %d\n", len(objects)+1)
+	doc.WriteString("0000000000 65535 f \n")
+	for idx := 1; idx <= len(objects); idx++ {
+		fmt.Fprintf(&doc, "%010d 00000 n \n", offsets[idx])
+	}
+	fmt.Fprintf(&doc, "trailer\n<< /Root 1 0 R /Size %d >>\nstartxref\n%d\n%%%%EOF\n", len(objects)+1, xrefOffset)
+
+	return doc.Bytes()
+}
+
+func makeArrayContentsPDF(first string, second string) []byte {
+	stream1 := "BT\n/F1 24 Tf\n100 100 Td\n(" + escapePDFString(first) + ") Tj\nET"
+	stream2 := "BT\n/F1 24 Tf\n100 70 Td\n(" + escapePDFString(second) + ") Tj\nET"
+	objects := []string{
+		"<< /Type /Catalog /Pages 2 0 R >>",
+		"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+		"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 144] /Contents [4 0 R 5 0 R] /Resources << /Font << /F1 6 0 R >> >> >>",
+		fmt.Sprintf("<< /Length %d >>\nstream\n%s\nendstream", len(stream1), stream1),
+		fmt.Sprintf("<< /Length %d >>\nstream\n%s\nendstream", len(stream2), stream2),
 		"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
 	}
 

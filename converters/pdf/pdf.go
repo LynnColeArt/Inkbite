@@ -135,13 +135,8 @@ func (pureGoExtractor) Extract(ctx context.Context, data []byte) (string, error)
 		return "", fmt.Errorf("purego: %w", err)
 	}
 
-	textReader, err := reader.GetPlainText()
+	text, err := extractPlainText(ctx, reader)
 	if err != nil {
-		return "", fmt.Errorf("purego: %w", err)
-	}
-
-	var out bytes.Buffer
-	if _, err := out.ReadFrom(textReader); err != nil {
 		return "", fmt.Errorf("purego: %w", err)
 	}
 
@@ -151,7 +146,141 @@ func (pureGoExtractor) Extract(ctx context.Context, data []byte) (string, error)
 	default:
 	}
 
+	return text, nil
+}
+
+func extractPlainText(ctx context.Context, reader *pdf.Reader) (string, error) {
+	var out bytes.Buffer
+	pages := reader.NumPage()
+	fonts := make(map[string]*pdf.Font)
+
+	for pageNumber := 1; pageNumber <= pages; pageNumber++ {
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		default:
+		}
+
+		page := reader.Page(pageNumber)
+		for _, name := range page.Fonts() {
+			if _, ok := fonts[name]; !ok {
+				font := page.Font(name)
+				fonts[name] = &font
+			}
+		}
+
+		pageText, err := extractPageText(page, fonts)
+		if err != nil {
+			return "", fmt.Errorf("page %d: %w", pageNumber, err)
+		}
+		if pageText == "" {
+			continue
+		}
+		if out.Len() > 0 {
+			out.WriteString("\n\n")
+		}
+		out.WriteString(pageText)
+	}
+
 	return out.String(), nil
+}
+
+func extractPageText(page pdf.Page, fonts map[string]*pdf.Font) (result string, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%v", r)
+		}
+	}()
+
+	var enc pdf.TextEncoding = identityEncoding{}
+	var out bytes.Buffer
+	showText := func(s string) {
+		for _, ch := range enc.Decode(s) {
+			if _, err := out.WriteRune(ch); err != nil {
+				panic(err)
+			}
+		}
+	}
+
+	for _, stream := range contentStreams(page.V.Key("Contents")) {
+		pdf.Interpret(stream, func(stk *pdf.Stack, op string) {
+			n := stk.Len()
+			args := make([]pdf.Value, n)
+			for i := n - 1; i >= 0; i-- {
+				args[i] = stk.Pop()
+			}
+
+			switch op {
+			default:
+				return
+			case "T*":
+				showText("\n")
+			case "Tf":
+				if len(args) != 2 {
+					return
+				}
+				if font, ok := fonts[args[0].Name()]; ok {
+					enc = font.Encoder()
+				} else {
+					enc = identityEncoding{}
+				}
+			case "\"":
+				if len(args) != 3 {
+					return
+				}
+				showText("\n")
+				showText(args[2].RawString())
+			case "'":
+				if len(args) != 1 {
+					return
+				}
+				showText("\n")
+				showText(args[0].RawString())
+			case "Tj":
+				if len(args) != 1 {
+					return
+				}
+				showText(args[0].RawString())
+			case "TJ":
+				if len(args) != 1 {
+					return
+				}
+				v := args[0]
+				for i := 0; i < v.Len(); i++ {
+					x := v.Index(i)
+					if x.Kind() == pdf.String {
+						showText(x.RawString())
+					}
+				}
+			}
+		})
+	}
+
+	return out.String(), nil
+}
+
+func contentStreams(contents pdf.Value) []pdf.Value {
+	switch contents.Kind() {
+	case pdf.Stream:
+		return []pdf.Value{contents}
+	case pdf.Array:
+		streams := make([]pdf.Value, 0, contents.Len())
+		for i := 0; i < contents.Len(); i++ {
+			stream := contents.Index(i)
+			if stream.Kind() == pdf.Stream {
+				streams = append(streams, stream)
+			}
+		}
+		return streams
+	default:
+		return nil
+	}
+}
+
+type identityEncoding struct{}
+
+func (identityEncoding) Decode(raw string) string {
+	return raw
 }
 
 func layoutToMarkdown(input string) string {
