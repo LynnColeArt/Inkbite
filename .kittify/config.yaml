@@ -1,0 +1,12 @@
+project:
+  uuid: ca4f65ee-5843-4a11-b4a4-da6944edc268
+  slug: inkbite
+  node_id: 752e6076aa27
+  build_id: 00eda82d-3b21-569a-913e-e7c6b5b0d377
+vcs:
+  type: git
+agents:
+  available:
+  - codex
+  auto_commit: true
+  lint_on_edit: false
