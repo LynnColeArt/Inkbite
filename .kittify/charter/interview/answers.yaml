@@ -1,0 +1,76 @@
+schema_version: "1.0.0"
+mission: "software-dev"
+profile: "comprehensive"
+answers:
+  project_intent: >-
+    Inkbite is an MIT-licensed, composable rich-document ingestion library and
+    command-line application. It should turn untrusted heterogeneous documents
+    into useful, reproducible content and independently retainable artifacts
+    while keeping authority, inference, downloads, and persistence explicit.
+  languages_frameworks: >-
+    Go 1.25.13 or newer, standard Go tooling, small focused dependencies, and
+    portable pure-Go behavior by default across Linux, macOS, and Windows.
+  testing_requirements: >-
+    Test-first development is required. Public behavior needs black-box tests;
+    security boundaries need deterministic red-to-green proofs; concurrency
+    changes need the race detector; and changed production statements need at
+    least 80.0 percent unrounded fixed-base coverage.
+  quality_gates: >-
+    Required gates are formatting, full normal and race suites, go vet,
+    staticcheck, govulncheck with the supported toolchain, module verification,
+    license checks, deterministic generated output, exact diff scope, and the
+    Linux, macOS, and Windows CI matrix. Failures remain failed evidence until
+    corrected; they are not rerun away.
+  review_policy: >-
+    All remote main-branch changes use pull requests. Mission work uses a
+    dedicated feature branch, small logical commits, linear history, targeted
+    staging, and at least one independent review before merge. The operator may
+    authorize the final merge after all gates pass.
+  performance_targets: >-
+    Ingestion must remain explicitly bounded. Default acquisition and aggregate
+    expansion limits are 32 MiB, cancellation must terminate cooperative work
+    within one second, and repeat/concurrency tests must prove deterministic
+    results without request-state leakage.
+  deployment_constraints: >-
+    The default binary remains self-contained and portable. Normal conversion
+    never performs hidden model inference, component installation, downloads,
+    subprocess execution, or remote access. Optional components are separately
+    installed and explicitly selected. Distribution remains MIT-compatible.
+  documentation_policy: >-
+    Observable behavior, public examples, integration guidance, security
+    boundaries, and adopted-component attribution change with the code. Stale
+    descriptions are corrected or removed rather than accumulated.
+  risk_boundaries: >-
+    Inputs and extracted content are untrusted. Resource expansion, SSRF,
+    credentials, raw payloads, archive traversal, optional-component authority,
+    artifact integrity, and cleanup/retention boundaries must fail closed with
+    safe public diagnostics.
+  amendment_process: >-
+    Material changes to public compatibility, licensing, network authority,
+    inference behavior, retention responsibility, or release gates require an
+    explicit specification or charter amendment with rationale and independent
+    review.
+  exception_policy: >-
+    Exceptions must be narrow, time-bounded when applicable, documented with
+    owner and rationale, and approved before use. No exception may fabricate
+    evidence, weaken integrity checks, expose secrets, or bypass PR review.
+selected_paradigms: []
+selected_directives:
+  - DIRECTIVE_003
+  - DIRECTIVE_010
+  - DIRECTIVE_024
+  - DIRECTIVE_030
+  - DIRECTIVE_031
+  - DIRECTIVE_033
+  - DIRECTIVE_034
+  - DIRECTIVE_036
+  - DIRECTIVE_037
+  - DIRECTIVE_039
+  - DIRECTIVE_041
+  - DIRECTIVE_043
+  - DIRECTIVE_045
+  - DIRECTIVE_046
+available_tools:
+  - spec-kitty
+  - git
+  - go
