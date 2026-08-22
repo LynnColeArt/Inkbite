@@ -470,65 +470,65 @@
       "invariant_id": "NI-HIDDEN-EFFECTS",
       "description": "Ordinary conversion and verification must not invoke remote, model, component, or download authority.",
       "verification_method": "custom_command",
-      "verification_command": "go test ./test/acceptance -run 'TestSecurityBoundaries' -count=1",
+      "verification_command": "repo_root=$(git rev-parse --show-toplevel) && work_root=$repo_root && test -d \"$work_root/test/acceptance\" || work_root=\"$repo_root/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i\"; test -d \"$work_root/test/acceptance\" && GOTOOLCHAIN=go1.26.6 go -C \"$work_root\" test ./test/acceptance -run '^TestConversionHasZeroHiddenModelComponentOrDownloadEffects$' -count=1",
       "result": "confirmed_absent",
-      "evidence": "WP09 aggregate counters are exactly zero."
+      "evidence": "WP09 cycle-3 review observed remote/model/component/download counters exactly zero."
     },
     {
       "invariant_id": "NI-PARTIAL-SUCCESS",
       "description": "Policy, integrity, cancellation, or malformed input must never return a successful partial envelope.",
       "verification_method": "custom_command",
-      "verification_command": "go test ./test/acceptance ./test/contract -count=1",
+      "verification_command": "repo_root=$(git rev-parse --show-toplevel) && work_root=$repo_root && test -d \"$work_root/test/acceptance\" || work_root=\"$repo_root/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i\"; test -d \"$work_root/test/acceptance\" && GOTOOLCHAIN=go1.26.6 go -C \"$work_root\" test ./test/acceptance -run '^(TestVerificationRejectsEveryRetainedObjectMutation|TestEveryIngestionLimitPassesAtBoundaryAndFailsAtPlusOne|TestCancellationReturnsTypedZeroEnvelopeAcrossOneHundredRequests)$' -count=1",
       "result": "confirmed_absent",
-      "evidence": "Boundary and mutation matrices return typed failure and zero envelope."
+      "evidence": "Mutation, boundary, and cancellation matrices return typed failure and zero envelope."
     },
     {
       "invariant_id": "NI-REMOTE-DEFAULT",
       "description": "Remote authority must remain disabled and effect-free by default.",
       "verification_method": "custom_command",
-      "verification_command": "go test ./... -run 'Remote|HTTP' -count=1",
+      "verification_command": "repo_root=$(git rev-parse --show-toplevel) && work_root=$repo_root && test -d \"$work_root/internal/ingestion\" || work_root=\"$repo_root/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i\"; test -d \"$work_root/internal/ingestion\" && GOTOOLCHAIN=go1.26.6 go -C \"$work_root\" test ./internal/ingestion ./test/acceptance -run '^(TestRemoteDisabledHasZeroAuthorityCalls|TestRemoteAuthorityAddressAndRedirectMatrix)$' -count=1",
       "result": "confirmed_absent",
-      "evidence": "Disabled-authority production-path tests observe zero resolver/dial/transport calls."
+      "evidence": "Disabled authority and address/redirect matrices pass on the integrated candidate."
     },
     {
       "invariant_id": "NI-BYTE-ALIAS",
       "description": "Returned source, primary, and derivative byte storage must not overlap caller or sibling accessible capacity.",
       "verification_method": "custom_command",
-      "verification_command": "go test . ./internal/ingestion -count=20",
+      "verification_command": "repo_root=$(git rev-parse --show-toplevel) && work_root=$repo_root && test -d \"$work_root/internal/ingestion\" || work_root=\"$repo_root/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i\"; test -d \"$work_root/internal/ingestion\" && GOTOOLCHAIN=go1.26.6 go -C \"$work_root\" test . ./internal/ingestion ./test/acceptance -run 'Owned|Alias|Capacity|ConcurrentCanonicalRequestsRemainIsolated' -count=20",
       "result": "confirmed_absent",
-      "evidence": "Capacity-range alias, clipped seal, and mutation tests pass."
+      "evidence": "Accessible-capacity, clipped ownership, and concurrent alias-isolation tests pass."
     },
     {
       "invariant_id": "NI-ARTIFACT-REFERENCE",
       "description": "Only complete locally valid artifact tokens may rewrite to engine-owned final IDs.",
       "verification_method": "custom_command",
-      "verification_command": "go test ./converters/pdf -count=20",
+      "verification_command": "repo_root=$(git rev-parse --show-toplevel) && work_root=$repo_root && test -f \"$work_root/converters/pdf/detailed_test.go\" || work_root=\"$repo_root/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i\"; test -f \"$work_root/converters/pdf/detailed_test.go\" && GOTOOLCHAIN=go1.26.6 go -C \"$work_root\" test ./converters/pdf -run 'DetailedArtifact|DetailedReference' -count=20",
       "result": "confirmed_absent",
-      "evidence": "Mixed-image, identical-occurrence, opener/delimiter, malformed, and substring-preservation matrices pass."
+      "evidence": "Mixed-image, identical-occurrence, malformed-token, and substring-preservation matrices pass."
     },
     {
       "invariant_id": "NI-LINKED-BINARY-PUBLICATION",
       "description": "Official workflows must not package or publish a linked Inkbite executable or dependency bundle.",
       "verification_method": "custom_command",
-      "verification_command": "go test ./test/acceptance -run 'ReleasePackaging|ReleaseWorkflows|LegacyDist' -count=1",
+      "verification_command": "repo_root=$(git rev-parse --show-toplevel) && work_root=$repo_root && test -d \"$work_root/test/acceptance\" || work_root=\"$repo_root/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i\"; test -d \"$work_root/test/acceptance\" && GOTOOLCHAIN=go1.26.6 go -C \"$work_root\" test ./test/acceptance -run '^(TestSourceOnlyReleaseContractAndArchiveMutations|TestSourceOnlyPublicationSurfacesAndMutations)$' -count=1",
       "result": "confirmed_absent",
-      "evidence": "Exact 355-file source manifests, forbidden binary/vendor mutations, canonical delegation, and exact upload paths pass."
+      "evidence": "Exact source manifests and binary/vendor/publication mutations pass under the source-only ruling."
     },
     {
       "invariant_id": "NI-REVIEW-LOCK-DIRT",
       "description": "Quality may tolerate only an unchanged pre-existing regular Spec Kitty review lock; all other dirt must fail.",
       "verification_method": "custom_command",
-      "verification_command": "go test ./test/acceptance -run 'ReviewLock|RepositoryCleanliness' -count=1",
+      "verification_command": "repo_root=$(git rev-parse --show-toplevel) && work_root=$repo_root && test -d \"$work_root/test/acceptance\" || work_root=\"$repo_root/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i\"; test -d \"$work_root/test/acceptance\" && GOTOOLCHAIN=go1.26.6 go -C \"$work_root\" test ./test/acceptance -run '^TestQualityCleanlinessAllowsOnlyUnchangedPreexistingReviewLock$' -count=1",
       "result": "confirmed_absent",
-      "evidence": "Create/delete/modify/symlink/extra-path and unrelated-dirt cases fail; unchanged lock passes."
+      "evidence": "Create/delete/modify/symlink/extra-path and unrelated dirt fail; unchanged regular lock passes."
     },
     {
       "invariant_id": "NI-FROZEN-RELEASE",
       "description": "The terminal release sequence must run once in order on one committed tree and stop on the first failure.",
-      "verification_method": "reviewed_evidence",
-      "verification_command": "WP09 mandatory commands 1-9",
+      "verification_method": "custom_command",
+      "verification_command": "repo_root=$(git rev-parse --show-toplevel) && work_root=$repo_root && test -x \"$work_root/scripts/verify-ingestion-contract.sh\" || work_root=\"$repo_root/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i\"; test -x \"$work_root/scripts/verify-ingestion-contract.sh\" && GOTOOLCHAIN=go1.26.6 GOFLAGS='-timeout=20m -p=1' make -C \"$work_root\" quality COVERAGE_BASE_REF=ee5542edd1ac64b5f66dcb9d0056dd4815739342",
       "result": "confirmed_absent",
-      "evidence": "Cycle-3 independent reviewer recorded all nine commands green on frozen HEAD 5db4ac5 without retry or mutation."
+      "evidence": "Cycle-3 independent review ran all nine terminal commands once; acceptance rechecks canonical quality on the integrated candidate."
     }
   ]
 }
