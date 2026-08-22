@@ -12,5 +12,7 @@
   "purpose_tldr": "Provide a reproducible, bounded document-ingestion contract that Nano Kitty can safely compose.",
   "slug": "inkbite-ingestion-contract-01M0M3HW",
   "target_branch": "feat/inkbite-ingestion-contract",
-  "topology": "lanes_with_coord"
+  "topology": "lanes_with_coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-08-22T07:36:45.007144+00:00"
 }
