@@ -21,7 +21,7 @@ subtasks:
 - T030
 - T031
 - T032
-agent: "codex:gpt-5.6-sol:reviewer-renata:reviewer"
+agent: "codex:gpt-5.6-sol:implementer-ivan:implementer"
 shell_pid: "2667806"
 history:
 - at: '2026-08-22T00:00:00Z'
@@ -95,3 +95,4 @@ Report artifact ordering/relationships, legacy snapshots, limit/mutation evidenc
 - 2026-08-22T13:07:41Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Ready for review: deterministic owned PDF image artifacts and inkbite-artifact references; legacy Convert/CLI KeepDataURIs behavior preserved through shared dispatch. Red 5f8dd1c; green c176881; hardening 766f43c. Go 1.26.6 PDF count20/race5, full normal/race, vet, build, module, staticcheck, govuln zero reachable, diff, Windows compile, CLI, 83.720930% fixed-base changed coverage, and three mutations pass. Exact scope: four WP PDF files plus authorized engine.go, ingestion.go, ingestion_test.go, conversion_integration_test.go.
 - 2026-08-22T13:08:50Z – codex:gpt-5.6-sol:reviewer-renata:reviewer – shell_pid=2667806 – Started review via action command
 - 2026-08-22T13:16:42Z – user – shell_pid=2667806 – Moved to planned
+- 2026-08-22T13:21:57Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Started implementation via action command
