@@ -116,11 +116,11 @@ go test ./test/acceptance -count=10
 go test -race ./test/acceptance -count=3
 go test ./...
 go test -race ./...
-make quality COVERAGE_BASE_REF=<immutable-base>
+make quality COVERAGE_BASE_REF=ee5542edd1ac64b5f66dcb9d0056dd4815739342
 go build ./...
 go mod verify
 govulncheck ./...
-git diff --check <mission-base>..HEAD
+git diff --check ee5542edd1ac64b5f66dcb9d0056dd4815739342..HEAD
 ```
 
 Report raw coverage arithmetic, fixture hashes, package reproducibility, all zero-effect counters, final ancestry/scope, and worktree cleanliness. Transition only on frozen green bytes.

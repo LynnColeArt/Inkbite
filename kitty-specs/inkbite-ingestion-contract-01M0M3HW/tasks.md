@@ -4,7 +4,7 @@
 
 Nine bounded packages establish the value contract before effects: public envelope and pure verification; bounded primitives; source/remote admission; one engine pipeline; generic ZIP/EPUB accounting; OOXML/XLSX accounting; PDF derivatives; compatibility/documentation/civic adoption; and terminal retained-ingestion acceptance plus release qualification.
 
-All planning artifacts were generated on `feat/inkbite-ingestion-contract`. Spec Kitty owns lane allocation and dependency merges. Completed packages merge only to that feature branch until mission acceptance. `main` changes only through the later reviewed pull request.
+All planning artifacts were generated on `feat/inkbite-ingestion-contract`. Spec Kitty owns lane allocation and dependency merges. Completed packages merge only to that mission branch until mission acceptance. `main` changes only through the later reviewed pull request.
 
 `result.go`, `cmd/inkbite/main.go`, `builtins/defaults.go`, and unrelated converters are frozen. Any indispensable edit to a frozen or out-of-map file requires an explicit pre-edit exception and amended ownership.
 
