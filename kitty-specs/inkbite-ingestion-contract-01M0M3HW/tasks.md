@@ -148,11 +148,11 @@ All planning artifacts were generated on `feat/inkbite-ingestion-contract`. Spec
 **Priority**: P0
 **Dependencies**: WP01, WP02
 
-- [ ] T010 Bound bytes, reader, path, file URI, and data URI acquisition (WP03)
-- [ ] T011 Return exact owned source facts and origin metadata (WP03)
-- [ ] T012 Prove disabled remote authority makes zero calls (WP03)
-- [ ] T013 Implement redirect-safe destination admission and pinned dial (WP03)
-- [ ] T014 Bound remote bodies and redact remote diagnostics (WP03)
+- [x] T010 Bound bytes, reader, path, file URI, and data URI acquisition (WP03)
+- [x] T011 Return exact owned source facts and origin metadata (WP03)
+- [x] T012 Prove disabled remote authority makes zero calls (WP03)
+- [x] T013 Implement redirect-safe destination admission and pinned dial (WP03)
+- [x] T014 Bound remote bodies and redact remote diagnostics (WP03)
 
 ## WP04 — Single Engine Pipeline and Legacy Projection
 
