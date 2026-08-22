@@ -21,7 +21,8 @@ subtasks:
 - T035
 - T036
 - T037
-agent: codex
+agent: "codex:gpt-5.6-sol:curator-carla:implementer"
+shell_pid: "2667806"
 history:
 - at: '2026-08-22T00:00:00Z'
   actor: codex
@@ -99,3 +100,4 @@ Handoff includes compile evidence, CLI snapshots, schema/Go conformance, checked
 ## Activity Log
 
 - 2026-08-22 — Prompt generated from the approved mission artifacts.
+- 2026-08-22T14:09:21Z – codex:gpt-5.6-sol:curator-carla:implementer – shell_pid=2667806 – Started implementation via action command
