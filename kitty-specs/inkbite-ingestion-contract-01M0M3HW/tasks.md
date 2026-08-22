@@ -206,11 +206,11 @@ All planning artifacts were generated on `feat/inkbite-ingestion-contract`. Spec
 **Priority**: P1
 **Dependencies**: WP03, WP04, WP05, WP06, WP07
 
-- [ ] T033 Add external legacy API/custom-converter compatibility fixtures (WP08)
-- [ ] T034 Lock default Markdown CLI behavior (WP08)
-- [ ] T035 Document detailed API, security, and durability handoff (WP08)
-- [ ] T036 Validate shipped behavior against approved contracts and align public specs/skill (WP08)
-- [ ] T037 Publish civic adopted-components records (WP08)
+- [x] T033 Add external legacy API/custom-converter compatibility fixtures (WP08)
+- [x] T034 Lock default Markdown CLI behavior (WP08)
+- [x] T035 Document detailed API, security, and durability handoff (WP08)
+- [x] T036 Validate shipped behavior against approved contracts and align public specs/skill (WP08)
+- [x] T037 Publish civic adopted-components records (WP08)
 
 ## WP09 — Retained Acceptance and Release Qualification
 
