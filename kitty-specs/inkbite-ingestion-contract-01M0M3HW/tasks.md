@@ -125,11 +125,11 @@ All planning artifacts were generated on `feat/inkbite-ingestion-contract`. Spec
 **Dependencies**: none
 **Independent test**: External-style legacy code compiles while deterministic v1 values and a zero-effect verifier reject every mutation/reference defect.
 
-- [ ] T001 Specify v1 envelope, artifacts, relations, provenance, warnings, policy values (WP01)
-- [ ] T002 Add optional detailed-converter capability without changing Converter (WP01)
-- [ ] T003 Add stable typed public failures and safe formatting (WP01)
-- [ ] T004 Implement pure structural/content verification (WP01)
-- [ ] T005 Prove canonical order, owned bytes, mutation denial, legacy compatibility (WP01)
+- [x] T001 Specify v1 envelope, artifacts, relations, provenance, warnings, policy values (WP01)
+- [x] T002 Add optional detailed-converter capability without changing Converter (WP01)
+- [x] T003 Add stable typed public failures and safe formatting (WP01)
+- [x] T004 Implement pure structural/content verification (WP01)
+- [x] T005 Prove canonical order, owned bytes, mutation denial, legacy compatibility (WP01)
 
 ## WP02 — Bounded Ingestion Primitives
 
