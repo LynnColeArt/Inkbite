@@ -31,7 +31,7 @@ requirement_refs:
 tracker_refs: []
 planning_base_branch: feat/inkbite-ingestion-contract
 merge_target_branch: feat/inkbite-ingestion-contract
-branch_strategy: Spec Kitty allocates the terminal lane; merge completed work only to feat/inkbite-ingestion-contract before acceptance.
+branch_strategy: Planning artifacts for this mission were generated on feat/inkbite-ingestion-contract. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/inkbite-ingestion-contract unless the human explicitly redirects the landing branch.
 subtasks:
 - T038
 - T039
@@ -44,7 +44,7 @@ history:
   actor: codex
   action: Prompt generated via /spec-kitty.tasks
 agent_profile: reviewer-renata
-authoritative_surface: black-box acceptance and release gates
+authoritative_surface: test/acceptance/
 create_intent:
 - test/acceptance/retained_ingestion_test.go
 - test/acceptance/reproducibility_test.go

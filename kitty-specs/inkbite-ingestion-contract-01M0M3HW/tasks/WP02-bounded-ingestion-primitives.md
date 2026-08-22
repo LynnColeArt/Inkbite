@@ -13,7 +13,7 @@ requirement_refs:
 tracker_refs: []
 planning_base_branch: feat/inkbite-ingestion-contract
 merge_target_branch: feat/inkbite-ingestion-contract
-branch_strategy: Spec Kitty allocates the lane; merge completed work only to feat/inkbite-ingestion-contract.
+branch_strategy: Planning artifacts for this mission were generated on feat/inkbite-ingestion-contract. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/inkbite-ingestion-contract unless the human explicitly redirects the landing branch.
 subtasks:
 - T006
 - T007
@@ -25,7 +25,7 @@ history:
   actor: codex
   action: Prompt generated via /spec-kitty.tasks
 agent_profile: implementer-ivan
-authoritative_surface: internal bounded ingestion authority
+authoritative_surface: internal/ingestion/
 create_intent:
 - internal/ingestion/bounded.go
 - internal/ingestion/bounded_test.go
