@@ -160,11 +160,11 @@ All planning artifacts were generated on `feat/inkbite-ingestion-contract`. Spec
 **Priority**: P0
 **Dependencies**: WP01, WP02, WP03
 
-- [ ] T015 Compose one detailed and legacy engine pipeline (WP04)
-- [ ] T016 Preserve metadata precedence and ordered converter attempts (WP04)
-- [ ] T017 Seal/self-verify envelopes before success (WP04)
-- [ ] T018 Project legacy Result from the same pipeline (WP04)
-- [ ] T019 Prove cancellation, fallback, determinism, aliasing, concurrency (WP04)
+- [x] T015 Compose one detailed and legacy engine pipeline (WP04)
+- [x] T016 Preserve metadata precedence and ordered converter attempts (WP04)
+- [x] T017 Seal/self-verify envelopes before success (WP04)
+- [x] T018 Project legacy Result from the same pipeline (WP04)
+- [x] T019 Prove cancellation, fallback, determinism, aliasing, concurrency (WP04)
 
 ## WP05 — Generic ZIP and EPUB Accounting
 
