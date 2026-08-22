@@ -195,10 +195,10 @@ All planning artifacts were generated on `feat/inkbite-ingestion-contract`. Spec
 **Priority**: P1
 **Dependencies**: WP01, WP02, WP04
 
-- [ ] T029 Return ordered PDF image artifacts with safe facts (WP07)
-- [ ] T030 Emit deterministic artifact references/occurrences (WP07)
-- [ ] T031 Enforce artifact/output limits and visible degradation (WP07)
-- [ ] T032 Preserve legacy PDF and prove mutation/concurrency behavior (WP07)
+- [x] T029 Return ordered PDF image artifacts with safe facts (WP07)
+- [x] T030 Emit deterministic artifact references/occurrences (WP07)
+- [x] T031 Enforce artifact/output limits and visible degradation (WP07)
+- [x] T032 Preserve legacy PDF and prove mutation/concurrency behavior (WP07)
 
 ## WP08 — Compatibility, Documentation, and Civic Adoption
 
