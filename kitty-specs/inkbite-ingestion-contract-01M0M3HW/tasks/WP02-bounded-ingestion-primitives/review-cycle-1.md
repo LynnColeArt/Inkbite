@@ -7,6 +7,10 @@ reviewed_at: '2026-08-22T10:21:09Z'
 reviewer_agent: unknown
 verdict: rejected
 wp_id: WP02
+review_artifact_override_at: "2026-08-22T10:35:17Z"
+review_artifact_override_actor: "operator"
+review_artifact_override_wp_id: "WP02"
+review_artifact_override_reason: "Cycle-2 independent review supersedes retained cycle-1 rejection: both recorded blockers are closed and independently reproduced. Red f7cc3cb/d744067/03cfbb3; green ca42126/a2c200b/a57324b. Reader len/cap, cap-clipped sealing, checked scratch arithmetic, ordered FactOrigin/schema SSOT and add/remove/reorder/change mutations pass. Hostile readers, budgets, sanitization, cancellation, Go 1.26.6 count/race/full/vet/build/module/govuln, 92.6% coverage, exact scope/frozen/public/module/license gates pass; staticcheck only inherited PDF-test U1000. Anti-pattern checklist: dead code N/A deliberate staged foundation; synthetic fixtures PASS; silent empty returns PASS; FR coverage PASS; frozen surface PASS; locked decisions PASS; shared ownership PASS; production fragility N/A."
 ---
 
 # WP02 Review Cycle 1
