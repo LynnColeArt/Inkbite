@@ -108,7 +108,7 @@ All planning artifacts were generated on `feat/inkbite-ingestion-contract`. Spec
 | T033 | Add external legacy API/custom-converter compatibility fixtures | WP08 | No |
 | T034 | Lock default Markdown CLI behavior | WP08 | No |
 | T035 | Document detailed API, security, and durability handoff | WP08 | Yes |
-| T036 | Align schema, public contract, quickstart, specs, and skill | WP08 | Yes |
+| T036 | Validate shipped behavior against approved contracts and align public specs/skill | WP08 | Yes |
 | T037 | Publish civic adopted-components records | WP08 | No |
 | T038 | Build public verify-persist-discard-reload acceptance | WP09 | No |
 | T039 | Run reproducibility, mutation, policy, zero-effect, concurrency matrices | WP09 | No |
@@ -209,7 +209,7 @@ All planning artifacts were generated on `feat/inkbite-ingestion-contract`. Spec
 - [ ] T033 Add external legacy API/custom-converter compatibility fixtures (WP08)
 - [ ] T034 Lock default Markdown CLI behavior (WP08)
 - [ ] T035 Document detailed API, security, and durability handoff (WP08)
-- [ ] T036 Align schema, public contract, quickstart, specs, and skill (WP08)
+- [ ] T036 Validate shipped behavior against approved contracts and align public specs/skill (WP08)
 - [ ] T037 Publish civic adopted-components records (WP08)
 
 ## WP09 — Retained Acceptance and Release Qualification

@@ -43,9 +43,6 @@ owned_files:
 - INKBITE_COMPONENTS_SPEC.md
 - skills/inkbite/SKILL.md
 - ADOPTED_COMPONENTS.md
-- kitty-specs/inkbite-ingestion-contract-01M0M3HW/contracts/public-api.md
-- kitty-specs/inkbite-ingestion-contract-01M0M3HW/contracts/ingestion-envelope-v1.schema.json
-- kitty-specs/inkbite-ingestion-contract-01M0M3HW/quickstart.md
 role: implementer
 tags:
 - compatibility
@@ -78,9 +75,9 @@ Test default stdout/stderr/exit for success, unsupported, malformed, cancellatio
 
 Update README with contract semantics, tested examples, policy defaults, remote/optional-component authority, untrusted-content warning, digest non-authority caveat, and host-owned ingest→verify→persist→discard→reload→verify sequence.
 
-### T036 — Align contracts/specs/skill
+### T036 — Validate contracts and align public specs/skill
 
-Make JSON schema, public API contract, quickstart, `INKBITE_SPEC`, component spec, and skill match final names/defaults/warnings. Managed components never auto-download in normal conversion.
+Treat the approved JSON schema, public API contract, and quickstart under `kitty-specs/` as immutable test inputs. Add black-box conformance checks against them, then make `INKBITE_SPEC`, the component spec, and the skill match the shipped names/defaults/warnings. Managed components never auto-download in normal conversion. If implementation cannot satisfy an approved contract, reject the owning WP rather than rewriting planning evidence.
 
 ### T037 — Civic adoption record
 
