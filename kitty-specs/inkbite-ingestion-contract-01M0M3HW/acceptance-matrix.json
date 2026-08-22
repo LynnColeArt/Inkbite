@@ -472,7 +472,7 @@
       "verification_method": "custom_command",
       "verification_command": "repo_root=$(git rev-parse --show-toplevel) && work_root=$repo_root && test -d \"$work_root/test/acceptance\" || work_root=\"$repo_root/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i\"; test -d \"$work_root/test/acceptance\" && GOTOOLCHAIN=go1.26.6 go -C \"$work_root\" test ./test/acceptance -run '^TestConversionHasZeroHiddenModelComponentOrDownloadEffects$' -count=1",
       "result": "confirmed_absent",
-      "evidence": "WP09 cycle-3 review observed remote/model/component/download counters exactly zero."
+      "evidence": "Command exited 0: ok  \tgithub.com/LynnColeArt/Inkbite/test/acceptance\t0.008s"
     },
     {
       "invariant_id": "NI-PARTIAL-SUCCESS",
@@ -480,7 +480,7 @@
       "verification_method": "custom_command",
       "verification_command": "repo_root=$(git rev-parse --show-toplevel) && work_root=$repo_root && test -d \"$work_root/test/acceptance\" || work_root=\"$repo_root/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i\"; test -d \"$work_root/test/acceptance\" && GOTOOLCHAIN=go1.26.6 go -C \"$work_root\" test ./test/acceptance -run '^(TestVerificationRejectsEveryRetainedObjectMutation|TestEveryIngestionLimitPassesAtBoundaryAndFailsAtPlusOne|TestCancellationReturnsTypedZeroEnvelopeAcrossOneHundredRequests)$' -count=1",
       "result": "confirmed_absent",
-      "evidence": "Mutation, boundary, and cancellation matrices return typed failure and zero envelope."
+      "evidence": "Command exited 0: ok  \tgithub.com/LynnColeArt/Inkbite/test/acceptance\t0.011s"
     },
     {
       "invariant_id": "NI-REMOTE-DEFAULT",
@@ -488,7 +488,7 @@
       "verification_method": "custom_command",
       "verification_command": "repo_root=$(git rev-parse --show-toplevel) && work_root=$repo_root && test -d \"$work_root/internal/ingestion\" || work_root=\"$repo_root/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i\"; test -d \"$work_root/internal/ingestion\" && GOTOOLCHAIN=go1.26.6 go -C \"$work_root\" test ./internal/ingestion ./test/acceptance -run '^(TestRemoteDisabledHasZeroAuthorityCalls|TestRemoteAuthorityAddressAndRedirectMatrix)$' -count=1",
       "result": "confirmed_absent",
-      "evidence": "Disabled authority and address/redirect matrices pass on the integrated candidate."
+      "evidence": "Command exited 0: ok  \tgithub.com/LynnColeArt/Inkbite/internal/ingestion\t0.002s\nok  \tgithub.com/LynnColeArt/Inkbite/test/acceptance\t0.005s"
     },
     {
       "invariant_id": "NI-BYTE-ALIAS",
@@ -496,7 +496,7 @@
       "verification_method": "custom_command",
       "verification_command": "repo_root=$(git rev-parse --show-toplevel) && work_root=$repo_root && test -d \"$work_root/internal/ingestion\" || work_root=\"$repo_root/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i\"; test -d \"$work_root/internal/ingestion\" && GOTOOLCHAIN=go1.26.6 go -C \"$work_root\" test . ./internal/ingestion ./test/acceptance -run 'Owned|Alias|Capacity|ConcurrentCanonicalRequestsRemainIsolated' -count=20",
       "result": "confirmed_absent",
-      "evidence": "Accessible-capacity, clipped ownership, and concurrent alias-isolation tests pass."
+      "evidence": "Command exited 0: ok  \tgithub.com/LynnColeArt/Inkbite\t0.045s\nok  \tgithub.com/LynnColeArt/Inkbite/internal/ingestion\t0.016s\nok  \tgithub.com/LynnColeArt/Inkbite/test/acceptance\t0.168s"
     },
     {
       "invariant_id": "NI-ARTIFACT-REFERENCE",
@@ -504,7 +504,7 @@
       "verification_method": "custom_command",
       "verification_command": "repo_root=$(git rev-parse --show-toplevel) && work_root=$repo_root && test -f \"$work_root/converters/pdf/detailed_test.go\" || work_root=\"$repo_root/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i\"; test -f \"$work_root/converters/pdf/detailed_test.go\" && GOTOOLCHAIN=go1.26.6 go -C \"$work_root\" test ./converters/pdf -run 'DetailedArtifact|DetailedReference' -count=20",
       "result": "confirmed_absent",
-      "evidence": "Mixed-image, identical-occurrence, malformed-token, and substring-preservation matrices pass."
+      "evidence": "Command exited 0: ok  \tgithub.com/LynnColeArt/Inkbite/converters/pdf\t0.308s"
     },
     {
       "invariant_id": "NI-LINKED-BINARY-PUBLICATION",
@@ -512,7 +512,7 @@
       "verification_method": "custom_command",
       "verification_command": "repo_root=$(git rev-parse --show-toplevel) && work_root=$repo_root && test -d \"$work_root/test/acceptance\" || work_root=\"$repo_root/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i\"; test -d \"$work_root/test/acceptance\" && GOTOOLCHAIN=go1.26.6 go -C \"$work_root\" test ./test/acceptance -run '^(TestSourceOnlyReleaseContractAndArchiveMutations|TestSourceOnlyPublicationSurfacesAndMutations)$' -count=1",
       "result": "confirmed_absent",
-      "evidence": "Exact source manifests and binary/vendor/publication mutations pass under the source-only ruling."
+      "evidence": "Command exited 0: ok  \tgithub.com/LynnColeArt/Inkbite/test/acceptance\t9.649s"
     },
     {
       "invariant_id": "NI-REVIEW-LOCK-DIRT",
@@ -520,7 +520,7 @@
       "verification_method": "custom_command",
       "verification_command": "repo_root=$(git rev-parse --show-toplevel) && work_root=$repo_root && test -d \"$work_root/test/acceptance\" || work_root=\"$repo_root/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i\"; test -d \"$work_root/test/acceptance\" && GOTOOLCHAIN=go1.26.6 go -C \"$work_root\" test ./test/acceptance -run '^TestQualityCleanlinessAllowsOnlyUnchangedPreexistingReviewLock$' -count=1",
       "result": "confirmed_absent",
-      "evidence": "Create/delete/modify/symlink/extra-path and unrelated dirt fail; unchanged regular lock passes."
+      "evidence": "Command exited 0: ok  \tgithub.com/LynnColeArt/Inkbite/test/acceptance\t0.155s"
     },
     {
       "invariant_id": "NI-FROZEN-RELEASE",
@@ -528,7 +528,7 @@
       "verification_method": "custom_command",
       "verification_command": "repo_root=$(git rev-parse --show-toplevel) && work_root=$repo_root && test -x \"$work_root/scripts/verify-ingestion-contract.sh\" || work_root=\"$repo_root/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i\"; test -x \"$work_root/scripts/verify-ingestion-contract.sh\" && GOTOOLCHAIN=go1.26.6 GOFLAGS='-timeout=20m -p=1' make -C \"$work_root\" quality COVERAGE_BASE_REF=ee5542edd1ac64b5f66dcb9d0056dd4815739342",
       "result": "confirmed_absent",
-      "evidence": "Cycle-3 independent review ran all nine terminal commands once; acceptance rechecks canonical quality on the integrated candidate."
+      "evidence": "Command exited 0: make: Entering directory '/home/lynn/projects/inkbite/.worktrees/inkbite-ingestion-contract-01M0M3HW-lane-i'\n./scripts/verify-ingestion-contract.sh quality\nquality base: ee5542edd1ac64b5f66dcb9d0056dd"
     }
   ]
 }
