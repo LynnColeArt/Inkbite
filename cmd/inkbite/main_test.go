@@ -168,7 +168,14 @@ func TestRunConvertCancellationSnapshot(t *testing.T) {
 	}
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	code := run([]string{"--timeout", "1ns", path}, &stdout, &stderr, runtimeDeps{version: "test"})
+	code := run([]string{"--timeout", "1h", path}, &stdout, &stderr, runtimeDeps{
+		version: "test",
+		timeoutContext: func(parent context.Context, _ time.Duration) (context.Context, context.CancelFunc) {
+			ctx, cancel := context.WithCancel(parent)
+			cancel()
+			return ctx, cancel
+		},
+	})
 	if code != 1 {
 		t.Fatalf("run() code = %d, want 1", code)
 	}

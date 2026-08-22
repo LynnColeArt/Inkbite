@@ -212,8 +212,14 @@ func TestAcquireSourceFormsUseOneBoundAndOwnExactBytes(t *testing.T) {
 	if err := os.WriteFile(overPath, []byte("123456789"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	atFileURI := (&url.URL{Scheme: "file", Path: atPath}).String()
-	overFileURI := (&url.URL{Scheme: "file", Path: overPath}).String()
+	atURIPath := filepath.ToSlash(atPath)
+	overURIPath := filepath.ToSlash(overPath)
+	if filepath.VolumeName(atPath) != "" {
+		atURIPath = "/" + atURIPath
+		overURIPath = "/" + overURIPath
+	}
+	atFileURI := (&url.URL{Scheme: "file", Path: atURIPath}).String()
+	overFileURI := (&url.URL{Scheme: "file", Path: overURIPath}).String()
 
 	tests := []struct {
 		name     string

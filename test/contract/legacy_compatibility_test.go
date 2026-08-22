@@ -128,7 +128,11 @@ func TestLegacyConverterAndEveryEngineEntryPointRemainSourceCompatible(t *testin
 	if err := os.WriteFile(path, []byte("path"), 0o600); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
 	}
-	fileURI := (&url.URL{Scheme: "file", Path: filepath.ToSlash(path)}).String()
+	fileURIPath := filepath.ToSlash(path)
+	if filepath.VolumeName(path) != "" {
+		fileURIPath = "/" + fileURIPath
+	}
+	fileURI := (&url.URL{Scheme: "file", Path: fileURIPath}).String()
 
 	tests := []struct {
 		name string
