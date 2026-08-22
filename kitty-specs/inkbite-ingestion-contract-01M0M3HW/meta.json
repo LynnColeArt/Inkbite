@@ -7,6 +7,7 @@
   "mission_number": null,
   "mission_slug": "inkbite-ingestion-contract-01M0M3HW",
   "mission_type": "software-dev",
+  "pr_bound": true,
   "purpose_context": "Nano Kitty needs a stable rich-media ingestion boundary that preserves source identity, records derived artifacts and conversion provenance, and fails closed on malformed, oversized, recursive, or implicitly remote inputs. This mission establishes that contract in Inkbite before Nano Kitty consumes it, without introducing hidden inference or network authority.",
   "purpose_tldr": "Provide a reproducible, bounded document-ingestion contract that Nano Kitty can safely compose.",
   "slug": "inkbite-ingestion-contract-01M0M3HW",
