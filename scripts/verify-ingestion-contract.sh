@@ -101,6 +101,14 @@ source_archive_stem() {
   printf '%s_%s_source' "$1" "$2"
 }
 
+native_path() {
+  if command -v cygpath >/dev/null 2>&1; then
+    cygpath -w "$1"
+  else
+    printf '%s\n' "$1"
+  fi
+}
+
 verify_source_release_warning() {
   local root="${1:-.}"
   local warning="Default Inkbite binaries link GPL-3.0-only xlsReader, are not MIT-only, and are not qualified for redistribution by this workflow."
@@ -161,9 +169,10 @@ build_source_packages_raw() (
   validate_release_component binary "$binary"
   validate_source_manifest
   verify_source_release_warning .
-  if [[ "$output_dir" != /* ]]; then
-    output_dir="$(pwd)/$output_dir"
-  fi
+  case "$output_dir" in
+    /*|[A-Za-z]:/*) ;;
+    *) output_dir="$(pwd)/$output_dir" ;;
+  esac
   archive_name="$(source_archive_stem "$binary" "$version")"
   tar_name="$archive_name.tar.gz"
   zip_name="$archive_name.zip"
@@ -178,8 +187,9 @@ build_source_packages_raw() (
   find "$package_dir" -type f -exec chmod 0644 {} +
   find "$package_dir" -exec touch -t "$ARCHIVE_TIMESTAMP" {} +
 
-  GOTOOLCHAIN="$PINNED_TOOLCHAIN" go run ./scripts/package-source.go create \
-    "$package_dir" "$archive_name" "$output_dir/$tar_name" "$output_dir/$zip_name"
+  MSYS2_ARG_CONV_EXCL='*' GOTOOLCHAIN="$PINNED_TOOLCHAIN" go run ./scripts/package-source.go create \
+    "$(native_path "$package_dir")" "$archive_name" \
+    "$(native_path "$output_dir/$tar_name")" "$(native_path "$output_dir/$zip_name")"
   write_source_checksums "$output_dir" "$tar_name" "$zip_name"
 )
 
@@ -230,7 +240,10 @@ inspect_source_archive() (
   git archive --format=tar HEAD | tar -x -C "$expected"
   case "$format" in
     tar) tar -xzf "$archive" -C "$extracted" ;;
-    zip) GOTOOLCHAIN="$PINNED_TOOLCHAIN" go run ./scripts/package-source.go extract-zip "$archive" "$extracted" ;;
+    zip)
+      MSYS2_ARG_CONV_EXCL='*' GOTOOLCHAIN="$PINNED_TOOLCHAIN" go run ./scripts/package-source.go extract-zip \
+        "$(native_path "$archive")" "$(native_path "$extracted")"
+      ;;
   esac
   if [[ "$(cd "$extracted" && find . -mindepth 1 -maxdepth 1 -print | sed 's#^\./##')" != "$archive_name" || ! -d "$extracted/$archive_name" ]]; then
     echo "source archive has an invalid top-level manifest" >&2

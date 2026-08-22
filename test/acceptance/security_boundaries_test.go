@@ -594,7 +594,7 @@ func TestSourceOnlyPublicationSurfacesAndMutations(t *testing.T) {
 			name: "GPL warning deletion",
 			path: "README.md",
 			replace: func(source string) string {
-				return strings.Replace(source, "Default Inkbite binaries link GPL-3.0-only xlsReader, are not MIT-only, and are not qualified for redistribution by this workflow.\n", "", 1)
+				return strings.Replace(source, "Default Inkbite binaries link GPL-3.0-only xlsReader, are not MIT-only, and are not qualified for redistribution by this workflow.", "", 1)
 			},
 		},
 	}
@@ -607,7 +607,11 @@ func TestSourceOnlyPublicationSurfacesAndMutations(t *testing.T) {
 					t.Fatal(err)
 				}
 				if path == mutation.path {
-					source = []byte(mutation.replace(string(source)))
+					mutated := []byte(mutation.replace(string(source)))
+					if bytes.Equal(mutated, source) {
+						t.Fatalf("mutation %q did not alter %s", mutation.name, path)
+					}
+					source = mutated
 				}
 				target := filepath.Join(fixture, path)
 				if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
