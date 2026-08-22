@@ -5,7 +5,7 @@
 **Mission**: `inkbite-ingestion-contract-01M0M3HW` — Inkbite Ingestion Contract
 **Baseline commit**: `b32e63144bb3b4792ce52b8551a95fb8d3bb8f65`
 **Merged product commit**: `7d0c3ad`
-**Reviewed product HEAD after remote portability correction**: `4a0b63d`
+**Reviewed product HEAD after remote portability correction**: `606f9da`
 **WPs reviewed**: WP01–WP09
 
 ## Gate Results
@@ -37,11 +37,13 @@
   `0c839d2bbb8c86f4a4ceb48706070efaed8c9880d15dd7a4b815b6de2b63a23b`
   under a fresh `core.autocrlf=true` checkout.
 - Remote portability correction: the first pull-request macOS run rejected GNU
-  `tar --sort=name`. Red `8418752` retained that contract; green `4a0b63d`
-  moved deterministic tar.gz/ZIP creation to Go standard-library writers and
-  removed GNU-only `find` predicates. Focused package mutations, Darwin and
-  Windows helper builds, full acceptance, and this complete quality command
-  then passed on the clean corrected tree.
+  `tar --sort=name`; the next Windows run exposed direct `.sh` execution and a
+  missing external `zip` command. Red `8418752` retained the platform contract;
+  green `4a0b63d` and `606f9da` moved deterministic tar.gz/ZIP creation,
+  extraction, and mutation to Go standard-library code, removed GNU-only
+  `find` predicates, and invoke the release script through Git Bash. Focused
+  package mutations, Darwin and Windows helper builds, full acceptance, and
+  this complete quality command then passed on the clean corrected tree.
 
 ### Gate 3 — Host boundary / cross-repository E2E
 
