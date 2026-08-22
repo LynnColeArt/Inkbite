@@ -7,6 +7,10 @@ reviewed_at: '2026-08-22T11:11:09Z'
 reviewer_agent: unknown
 verdict: rejected
 wp_id: WP03
+review_artifact_override_at: "2026-08-22T11:43:40Z"
+review_artifact_override_actor: "operator"
+review_artifact_override_wp_id: "WP03"
+review_artifact_override_reason: "Cycle 2 independent approval supersedes retained cycle-1 rejection under binding ruling 57bc26c. Narrow force is solely for required planning amendment 9929836 preserved through non-rewriting merge 5ef225f on dedicated lane-c; no out-of-scope product file is authorized. IANA current-registry longest-prefix mirror, both sentinels, synchronized joined cancellation, no-sleep/no-detached-worker, count100/race10/full/vet/build/module/vulnerability/coverage/API/frozen/scope/mutation gates passed; staticcheck only inherited PDF-test U1000. Anti-patterns: dead code PASS; synthetic fixtures PASS; silent empty return PASS; FR coverage PASS; frozen surface PASS; locked decisions PASS; shared ownership PASS; production fragility N/A."
 ---
 
 # WP03 Review Cycle 1 — Changes Required
