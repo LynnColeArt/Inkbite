@@ -18,7 +18,7 @@ subtasks:
 - T026
 - T027
 - T028
-agent: "codex:gpt-5.6-sol:implementer-ivan:implementer"
+agent: "codex:gpt-5.6-sol:reviewer-renata:reviewer"
 shell_pid: "2667806"
 history:
 - at: '2026-08-22T00:00:00Z'
@@ -110,3 +110,5 @@ Handoff includes preflight proof, hostile matrix, legacy fidelity hashes, cancel
 - 2026-08-22T13:22:39Z – user – shell_pid=2667806 – Moved to planned
 - 2026-08-22T13:24:10Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Started implementation via action command
 - 2026-08-22T13:32:44Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Cycle 2 blocker fixed red-first: e7287e9 proves public Engine.Ingest silently omitted malformed referenced PPTX notes while locking legacy Markdown hash; 32bb35b emits one deterministic payload-free optional_extraction_failed warning at the canonical notes location and preserves legacy projection. Behavioral mutation suppressing warning propagation turned the public regression red. Gates green: gofmt owned OOXML formats; package tests count=20; race package tests count=5; go test ./...; go vet ./...; git diff --check; PPTX coverage 82.0%; diff-scoped ruff N/A with no changed Python files. Cycle-2 scope is converters/pptx/pptx.go and converters/pptx/container_security_test.go only; no WP07 or reviewer metadata edits.
+- 2026-08-22T13:33:48Z – codex:gpt-5.6-sol:reviewer-renata:reviewer – shell_pid=2667806 – Started review via action command
+- 2026-08-22T13:38:27Z – user – shell_pid=2667806 – Cycle-2 independent approval supersedes retained cycle-1 rejection without rewriting it: red e7287e9 and green 32bb35b reproduced; the sole blocker is closed. Public Ingest emits deterministic safe optional_extraction_failed notes warnings; legacy hash/output unchanged; valid/empty/absent notes do not warn; multi-slide order and raw XML/backend/model sentinel redaction pass over 100 runs. Warning-propagation and XLSX-preflight mutations fail causally then restore green. Exact two-file correction and ten-file aggregate product scope; all accounting, fidelity, cancellation, concurrent isolation, count20/race5/full/vet/build/module/format/diff/vulnerability/coverage/API/frozen gates pass; staticcheck only inherited PDF-test U1000. Anti-pattern checklist PASS.

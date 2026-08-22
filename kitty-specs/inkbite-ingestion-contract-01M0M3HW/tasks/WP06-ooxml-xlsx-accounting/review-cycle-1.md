@@ -7,6 +7,10 @@ reviewed_at: '2026-08-22T13:22:39Z'
 reviewer_agent: unknown
 verdict: rejected
 wp_id: WP06
+review_artifact_override_at: "2026-08-22T13:38:26Z"
+review_artifact_override_actor: "operator"
+review_artifact_override_wp_id: "WP06"
+review_artifact_override_reason: "Cycle-2 independent approval supersedes retained cycle-1 rejection without rewriting it: red e7287e9 and green 32bb35b reproduced; the sole blocker is closed. Public Ingest emits deterministic safe optional_extraction_failed notes warnings; legacy hash/output unchanged; valid/empty/absent notes do not warn; multi-slide order and raw XML/backend/model sentinel redaction pass over 100 runs. Warning-propagation and XLSX-preflight mutations fail causally then restore green. Exact two-file correction and ten-file aggregate product scope; all accounting, fidelity, cancellation, concurrent isolation, count20/race5/full/vet/build/module/format/diff/vulnerability/coverage/API/frozen gates pass; staticcheck only inherited PDF-test U1000. Anti-pattern checklist PASS."
 ---
 
 # WP06 Review — Cycle 1
