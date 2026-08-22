@@ -26,8 +26,9 @@ was completed and revalidated without changing the governed product contract.
 | `INKBITE-014` | Merge preflight could not parse two historical `affected_files` lists expressed as strings rather than path mappings. | Mission merge / auditability | `verified-already-fixed` | Primary `b32e631` and coordination `641fa64` normalized only the historical review metadata; merge validation then passed without changing product bytes. |
 | `INKBITE-015` | Lane G was stale after shared `ingestion.go` changes from WP06 and WP07 and conflicted during canonical integration. | Cross-WP integration / shared engine pipeline | `verified-already-fixed` | Merge `f1e2151` preserved both request-budget propagation and detailed-vs-legacy dispatch intent; full tests passed before the canonical mission squash `7d0c3ad`. |
 | `INKBITE-016` | The mission squash restored the acceptance matrix's pending scaffold after canonical acceptance had passed. | Post-merge evidence integrity | `fixed` | The accepted 46-criterion/8-negative-invariant matrix was restored byte-for-byte from accepted tree `bd1efb8`; the post-merge mission review reran contract, acceptance, race, security, package, and quality gates. |
+| `INKBITE-017` | Spec Kitty 3.2.6 retrospective summary does not discover the canonical mission retrospective and instead reports mission-template directories as missing records. | Spec Kitty retrospective discovery | `deferred-with-followup` | [`upstream-issues/retrospective-summary-discovery.md`](upstream-issues/retrospective-summary-discovery.md) preserves the exact command, expected/actual result, impact, and proposed regression. The canonical [`retrospective.yaml`](retrospective.yaml) remains readable and valid. |
 
-Accounting: **16 findings; 13 fixed; 3 verified already fixed; 0 deferred;
+Accounting: **17 findings; 13 fixed; 3 verified already fixed; 1 deferred;
 0 unknown; 0 unowned.** No external issue number, remote tracker mutation, binary
 publication, or release was created while curating this matrix.
 

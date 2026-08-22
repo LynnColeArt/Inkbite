@@ -58,9 +58,9 @@
 - Files: [`issue-matrix.md`](issue-matrix.md) and
   [`acceptance-matrix.json`](acceptance-matrix.json)
 - Result: **PASS after post-merge evidence repair**.
-- Evidence: the issue matrix accounts for 16 material review/integration
-  findings with 13 `fixed`, 3 `verified-already-fixed`, and no deferred,
-  unknown, or unowned rows. The acceptance matrix contains 46 passing
+- Evidence: the issue matrix accounts for 17 material review/integration
+  findings with 13 `fixed`, 3 `verified-already-fixed`, one tooling follow-up,
+  and no unknown or unowned rows. The acceptance matrix contains 46 passing
   FR/NFR/constraint/success criteria and eight `confirmed_absent` negative
   invariants.
 - Integration note: canonical acceptance passed at `bd1efb8`, but mission
@@ -138,6 +138,12 @@ can suggest otherwise. The specification header also remains `Draft` and
 WP lanes correctly record completion. Treat runtime status/events and this
 report as the closeout authority until Spec Kitty normalizes those projections.
 
+The retrospective summary resolver also failed to discover this mission's
+canonical `retrospective.yaml` and instead classified eight installed
+mission-template directories as missing records. The exact reproduction and a
+non-vacuous regression proposal are retained as
+`SK-RETRO-SUMMARY-001`; this does not block the completed product.
+
 ## Silent Failure Candidates
 
 No blocking silent-success path was found. Converter fallback attempts are
@@ -181,8 +187,9 @@ a separately approved compliant release strategy.
 
 ## Retrospective Reminder
 
-The runtime generated [`retrospective.yaml`](retrospective.yaml). Review it with
-`spec-kitty retrospect summary` and
-`spec-kitty agent retrospect synthesize --mission inkbite-ingestion-contract-01M0M3HW`
-before publication; apply any doctrine proposal only through an explicit
-governed `--apply` action.
+The runtime generated [`retrospective.yaml`](retrospective.yaml). Direct review
+confirmed useful process findings. `spec-kitty agent retrospect synthesize
+--mission inkbite-ingestion-contract-01M0M3HW` completed as a dry run with no
+planned applications. `spec-kitty retrospect summary --json` currently misses
+the canonical record; the exact resolver defect is retained in
+[`SK-RETRO-SUMMARY-001`](upstream-issues/retrospective-summary-discovery.md).
