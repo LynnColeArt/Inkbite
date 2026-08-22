@@ -218,8 +218,8 @@ All planning artifacts were generated on `feat/inkbite-ingestion-contract`. Spec
 **Priority**: P0
 **Dependencies**: WP01, WP02, WP03, WP04, WP05, WP06, WP07, WP08
 
-- [ ] T038 Build public verify-persist-discard-reload acceptance (WP09)
-- [ ] T039 Run reproducibility, mutation, policy, zero-effect, concurrency matrices (WP09)
-- [ ] T040 Install fixed-base quality/API/license/security gates (WP09)
-- [ ] T041 Qualify Linux/macOS/Windows/race/vulnerability/package CI (WP09)
-- [ ] T042 Run and record the terminal frozen-tree gate matrix (WP09)
+- [x] T038 Build public verify-persist-discard-reload acceptance (WP09)
+- [x] T039 Run reproducibility, mutation, policy, zero-effect, concurrency matrices (WP09)
+- [x] T040 Install fixed-base quality/API/license/security gates (WP09)
+- [x] T041 Qualify Linux/macOS/Windows/race/vulnerability/package CI (WP09)
+- [x] T042 Run and record the terminal frozen-tree gate matrix (WP09)
