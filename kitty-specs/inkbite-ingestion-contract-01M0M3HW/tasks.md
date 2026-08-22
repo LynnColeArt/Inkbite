@@ -184,10 +184,10 @@ All planning artifacts were generated on `feat/inkbite-ingestion-contract`. Spec
 **Priority**: P0
 **Dependencies**: WP02, WP04
 
-- [ ] T025 Make OOXML package loading policy/path/checksum safe (WP06)
-- [ ] T026 Adopt bounded package loading in DOCX and PPTX (WP06)
-- [ ] T027 Preflight XLSX before third-party expansion (WP06)
-- [ ] T028 Prove cross-format boundaries, cancellation, and fidelity (WP06)
+- [x] T025 Make OOXML package loading policy/path/checksum safe (WP06)
+- [x] T026 Adopt bounded package loading in DOCX and PPTX (WP06)
+- [x] T027 Preflight XLSX before third-party expansion (WP06)
+- [x] T028 Prove cross-format boundaries, cancellation, and fidelity (WP06)
 
 ## WP07 — First-Class PDF Derivatives
 
