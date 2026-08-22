@@ -109,6 +109,14 @@ native_path() {
   fi
 }
 
+shell_path() {
+  if command -v cygpath >/dev/null 2>&1; then
+    cygpath -u "$1"
+  else
+    printf '%s\n' "$1"
+  fi
+}
+
 verify_source_release_warning() {
   local root="${1:-.}"
   local warning="Default Inkbite binaries link GPL-3.0-only xlsReader, are not MIT-only, and are not qualified for redistribution by this workflow."
@@ -239,7 +247,7 @@ inspect_source_archive() (
   mkdir -p "$expected" "$extracted"
   git archive --format=tar HEAD | tar -x -C "$expected"
   case "$format" in
-    tar) tar -xzf "$archive" -C "$extracted" ;;
+    tar) tar -xzf "$(shell_path "$archive")" -C "$extracted" ;;
     zip)
       MSYS2_ARG_CONV_EXCL='*' GOTOOLCHAIN="$PINNED_TOOLCHAIN" go run ./scripts/package-source.go extract-zip \
         "$(native_path "$archive")" "$(native_path "$extracted")"
