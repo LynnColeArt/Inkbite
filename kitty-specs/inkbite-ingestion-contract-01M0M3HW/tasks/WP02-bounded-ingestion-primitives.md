@@ -19,7 +19,8 @@ subtasks:
 - T007
 - T008
 - T009
-agent: codex
+agent: "codex:gpt-5.6-sol:implementer-ivan:implementer"
+shell_pid: "2667806"
 history:
 - at: '2026-08-22T00:00:00Z'
   actor: codex
@@ -106,3 +107,4 @@ Report red/green commits, boundary table, mutation proof, raw coverage, and exac
 ## Activity Log
 
 - 2026-08-22 — Prompt generated from the approved mission artifacts.
+- 2026-08-22T09:47:35Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Assigned agent via action command
