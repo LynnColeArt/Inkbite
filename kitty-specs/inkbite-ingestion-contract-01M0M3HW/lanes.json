@@ -1,0 +1,245 @@
+{
+  "version": 1,
+  "mission_slug": "inkbite-ingestion-contract-01M0M3HW",
+  "mission_id": "01M0M3HWAXR8PPZQ29TFQY4C7P",
+  "mission_branch": "kitty/mission-inkbite-ingestion-contract-01M0M3HW",
+  "target_branch": "feat/inkbite-ingestion-contract",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "converter.go",
+        "errors.go",
+        "ingestion_model.go",
+        "ingestion_model_test.go",
+        "ingestion_policy.go",
+        "ingestion_policy_test.go",
+        "ingestion_verify.go",
+        "ingestion_verify_test.go"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "internal/ingestion/bounded.go",
+        "internal/ingestion/bounded_test.go",
+        "internal/ingestion/budget.go",
+        "internal/ingestion/budget_test.go",
+        "internal/ingestion/context.go",
+        "internal/ingestion/context_test.go",
+        "internal/ingestion/sanitize.go",
+        "internal/ingestion/sanitize_test.go"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "internal/ingestion/remote.go",
+        "internal/ingestion/remote_test.go",
+        "options.go",
+        "source.go",
+        "source_test.go"
+      ],
+      "predicted_surfaces": [
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "conversion_integration_test.go",
+        "engine.go",
+        "engine_test.go",
+        "ingestion.go",
+        "ingestion_test.go",
+        "sniff.go",
+        "sniff_test.go",
+        "stream_info.go",
+        "stream_info_test.go"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "converters/epub/container_security_test.go",
+        "converters/epub/epub.go",
+        "converters/epub/epub_test.go",
+        "converters/zip/container_security_test.go",
+        "converters/zip/zip.go",
+        "converters/zip/zip_test.go"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-d"
+      ],
+      "parallel_group": 4
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "converters/docx/container_security_test.go",
+        "converters/docx/docx.go",
+        "converters/docx/docx_test.go",
+        "converters/pptx/container_security_test.go",
+        "converters/pptx/pptx.go",
+        "converters/pptx/pptx_test.go",
+        "converters/xlsx/container_security_test.go",
+        "converters/xlsx/xlsx.go",
+        "converters/xlsx/xlsx_test.go",
+        "internal/ooxml/package.go",
+        "internal/ooxml/package_test.go"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-d"
+      ],
+      "parallel_group": 4
+    },
+    {
+      "lane_id": "lane-g",
+      "wp_ids": [
+        "WP07"
+      ],
+      "write_scope": [
+        "converters/pdf/artifact_limits_test.go",
+        "converters/pdf/detailed_test.go",
+        "converters/pdf/pdf.go",
+        "converters/pdf/pdf_test.go"
+      ],
+      "predicted_surfaces": [
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-d"
+      ],
+      "parallel_group": 4
+    },
+    {
+      "lane_id": "lane-h",
+      "wp_ids": [
+        "WP08"
+      ],
+      "write_scope": [
+        "ADOPTED_COMPONENTS.md",
+        "INKBITE_COMPONENTS_SPEC.md",
+        "INKBITE_SPEC.md",
+        "README.md",
+        "cmd/inkbite/main_test.go",
+        "skills/inkbite/SKILL.md",
+        "test/contract/ingestion_contract_test.go",
+        "test/contract/legacy_compatibility_test.go"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-c",
+        "lane-d",
+        "lane-e",
+        "lane-f",
+        "lane-g"
+      ],
+      "parallel_group": 5
+    },
+    {
+      "lane_id": "lane-i",
+      "wp_ids": [
+        "WP09"
+      ],
+      "write_scope": [
+        ".github/workflows/ci.yml",
+        "Makefile",
+        "scripts/changed-coverage.sh",
+        "scripts/verify-ingestion-contract.sh",
+        "test/acceptance/reproducibility_test.go",
+        "test/acceptance/retained_ingestion_test.go",
+        "test/acceptance/security_boundaries_test.go"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-c",
+        "lane-d",
+        "lane-e",
+        "lane-f",
+        "lane-g",
+        "lane-h"
+      ],
+      "parallel_group": 6
+    }
+  ],
+  "computed_at": "2026-08-22T07:30:54.879297+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
