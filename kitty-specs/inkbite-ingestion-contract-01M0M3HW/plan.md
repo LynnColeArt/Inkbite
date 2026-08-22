@@ -1,6 +1,6 @@
 # Implementation Plan: Inkbite Ingestion Contract
 
-**Branch**: `feat/inkbite-ingestion-contract` | **Date**: 2026-08-22 | **Spec**: [spec.md](spec.md)  
+**Branch**: `feat/inkbite-ingestion-contract` | **Date**: 2026-08-22 | **Spec**: [spec.md](spec.md)
 **Input**: Committed mission specification, research, data model, source register, and project charter.
 
 ## Summary
@@ -22,14 +22,14 @@ The user authorized autonomous end-to-end execution and reasonable defaults. No 
 
 ## Technical Context
 
-**Language/Version**: Go 1.25.13 minimum; validation also uses Go 1.26.6 race tooling  
-**Primary Dependencies**: Go standard library; existing `pdfcpu`, `dslipak/pdf`, `excelize`, HTML/charset, and XLS dependencies; optional `golang.org/x/exp/apidiff` as a release-only compatibility tool  
-**Storage**: In-memory owned envelope only; no new durable store. Host persistence is outside Inkbite.  
-**Testing**: Go unit/contract/integration tests, black-box public fixtures, red-green boundary tests, fixed-base changed-statement coverage, race stress, mutation/deletion evidence, cross-platform CI  
-**Target Platform**: Linux, macOS, and Windows; pure-Go default binary on supported Go architectures  
-**Project Type**: Single Go module with library root, CLI, built-in converter packages, and internal bounded-ingestion helpers  
-**Performance Goals**: Deterministic 100-run repeatability; cancellation acknowledgement within one second at cooperative boundaries; no input/output allocation beyond configured limits plus one-byte overflow probes  
-**Constraints**: 32 MiB default acquisition/output/aggregate budgets; 256 entries/artifacts; 8 MiB individual entry/artifact; depth four; 1000:1 aggregate expansion ratio; HTTP and components off by default; no hidden inference or downloads  
+**Language/Version**: Go 1.25.13 minimum; validation also uses Go 1.26.6 race tooling
+**Primary Dependencies**: Go standard library; existing `pdfcpu`, `dslipak/pdf`, `excelize`, HTML/charset, and XLS dependencies; optional `golang.org/x/exp/apidiff` as a release-only compatibility tool
+**Storage**: In-memory owned envelope only; no new durable store. Host persistence is outside Inkbite.
+**Testing**: Go unit/contract/integration tests, black-box public fixtures, red-green boundary tests, fixed-base changed-statement coverage, race stress, mutation/deletion evidence, cross-platform CI
+**Target Platform**: Linux, macOS, and Windows; pure-Go default binary on supported Go architectures
+**Project Type**: Single Go module with library root, CLI, built-in converter packages, and internal bounded-ingestion helpers
+**Performance Goals**: Deterministic 100-run repeatability; cancellation acknowledgement within one second at cooperative boundaries; no input/output allocation beyond configured limits plus one-byte overflow probes
+**Constraints**: 32 MiB default acquisition/output/aggregate budgets; 256 entries/artifacts; 8 MiB individual entry/artifact; depth four; 1000:1 aggregate expansion ratio; HTTP and components off by default; no hidden inference or downloads
 **Scale/Scope**: One additive envelope contract, one public verifier, twelve built-in format converters preserved, five ZIP-backed readers brought under common accounting, PDF image artifacts as the first rich derivative proof
 
 ## Charter Check

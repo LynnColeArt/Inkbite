@@ -1,6 +1,6 @@
 # Data Model: Inkbite Ingestion Contract
 
-**Mission**: `inkbite-ingestion-contract-01M0M3HW`  
+**Mission**: `inkbite-ingestion-contract-01M0M3HW`
 **Contract status**: conceptual model for planning; serialized field names are not fixed here.
 
 ## Model Overview

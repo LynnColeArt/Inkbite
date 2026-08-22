@@ -1,7 +1,7 @@
 # Specification Quality Checklist: Inkbite Ingestion Contract
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning  
-**Created**: 2026-08-22  
+**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Created**: 2026-08-22
 **Feature**: [Inkbite Ingestion Contract](../spec.md)
 
 ## Content Quality

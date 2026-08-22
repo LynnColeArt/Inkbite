@@ -1,6 +1,6 @@
 # Public API Contract: Detailed Ingestion v1
 
-**Contract ID**: `inkbite.ingestion/v1`  
+**Contract ID**: `inkbite.ingestion/v1`
 **Compatibility rule**: additive to the existing Inkbite result, converter, engine, and CLI surfaces.
 
 ## Operations

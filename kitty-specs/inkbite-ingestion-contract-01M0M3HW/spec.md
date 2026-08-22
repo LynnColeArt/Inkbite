@@ -1,8 +1,8 @@
 # Mission Specification: Inkbite Ingestion Contract
 
-**Mission Branch**: `feat/inkbite-ingestion-contract`  
-**Created**: 2026-08-22  
-**Status**: Draft  
+**Mission Branch**: `feat/inkbite-ingestion-contract`
+**Created**: 2026-08-22
+**Status**: Draft
 **Input**: Establish a reproducible, bounded rich-document ingestion contract that Nano Kitty can compose without hidden inference, downloads, or network authority.
 
 ## Intent Summary

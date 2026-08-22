@@ -14,8 +14,8 @@ review_artifact_override_reason: "Independent cycle-2 review supersedes retained
 
 # WP04 Review Cycle 1 — Changes Required
 
-Reviewer: Reviewer Renata  
-Reviewed red: `1fa62d6`  
+Reviewer: Reviewer Renata
+Reviewed red: `1fa62d6`
 Reviewed final product commits: `baa2198`, `e2bc421`, `0ac8190`, `a66f156`, `227484e`
 
 ## Blocking issue 1 — Sealed byte objects expose unaccounted writable capacity

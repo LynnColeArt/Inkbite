@@ -1,9 +1,9 @@
 # Research: Inkbite Ingestion Contract
 
-**Mission**: `inkbite-ingestion-contract-01M0M3HW`  
-**Date**: 2026-08-22  
-**Status**: Complete for planning  
-**Evidence register**: [research/evidence-log.csv](research/evidence-log.csv)  
+**Mission**: `inkbite-ingestion-contract-01M0M3HW`
+**Date**: 2026-08-22
+**Status**: Complete for planning
+**Evidence register**: [research/evidence-log.csv](research/evidence-log.csv)
 **Source register**: [research/source-register.csv](research/source-register.csv)
 
 ## Research Question
