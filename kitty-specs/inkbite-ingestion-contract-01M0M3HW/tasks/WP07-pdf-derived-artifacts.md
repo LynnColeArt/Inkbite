@@ -21,7 +21,7 @@ subtasks:
 - T030
 - T031
 - T032
-agent: "codex:gpt-5.6-sol:reviewer-renata:reviewer"
+agent: "codex:gpt-5.6-sol:implementer-ivan:implementer"
 shell_pid: "2667806"
 history:
 - at: '2026-08-22T00:00:00Z'
@@ -99,3 +99,5 @@ Report artifact ordering/relationships, legacy snapshots, limit/mutation evidenc
 - 2026-08-22T13:36:55Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Cycle 2 ready: red 2c00adb; green 0d560dc; reference hardening 840b419. Engine is the sole canonical artifact-ID authority and rewrites converter-local detailed ordinals after final relationship-aware ordering; mixed JPEG/PNG and repeated-identical-byte production fixtures resolve visible MIME/page/object/dimensions/occurrences exactly, while legacy Convert remains literal. Go 1.26.6 PDF count20/race5, full normal/race, vet, build, module tidy-diff/verify, staticcheck v0.8.1, govuln 0 reachable, CLI count20, Windows/Darwin compile, diff/API/frozen/scope, 81.5% PDF raw and 1391/1530=90.915033% fixed-base coverage pass; raw-index mutation fails and restores. Cycle-2 scope exactly converters/pdf/{pdf.go,detailed_test.go,artifact_limits_test.go} plus previously authorized ingestion.go; clean lane, no residue.
 - 2026-08-22T13:39:16Z – codex:gpt-5.6-sol:reviewer-renata:reviewer – shell_pid=2667806 – Started review via action command
 - 2026-08-22T13:45:28Z – user – shell_pid=2667806 – Moved to planned
+- 2026-08-22T13:46:49Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Started implementation via action command
+- 2026-08-22T13:50:14Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Cycle 3 ready: red e688ac0; green 822a590. Explicit exact-token grammar accepts end-of-input and generated/legitimate Markdown delimiters, while public Ingest rejects path, query, fragment, percent-encoded, colon, backslash, authority-like, punctuation, alphanumeric, and Unicode continuations with ErrIntegrityFailure and zero envelopes; legacy literal Markdown and cycle1/2 canonical mapping remain exact. Default-accept mutation makes all continuation cases red and restores clean. Go 1.26.6 PDF count20/race5, focused count100, full normal/race, vet/build, mod verify/tidy-diff, staticcheck v0.8.1, govuln 0 reachable, CLI count20, Windows/Darwin compile, diff/API/frozen pass. PDF raw 81.5%; immutable-base 1393/1532=90.926893%; cycle3 6/6=100%. Exact cycle3 scope ingestion.go plus owned converters/pdf/artifact_limits_test.go; fixture SHA-256 0c839d2bbb8c86f4a4ceb48706070efaed8c9880d15dd7a4b815b6de2b63a23b; lane clean.
