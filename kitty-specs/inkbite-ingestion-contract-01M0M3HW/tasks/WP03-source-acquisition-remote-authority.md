@@ -19,7 +19,8 @@ subtasks:
 - T012
 - T013
 - T014
-agent: codex
+agent: "codex:gpt-5.6-sol:implementer-ivan:implementer"
+shell_pid: "2667806"
 history:
 - at: '2026-08-22T00:00:00Z'
   actor: codex
@@ -101,3 +102,4 @@ Handoff includes zero-call evidence, denied-address matrix, redirect/DNS pin pro
 ## Activity Log
 
 - 2026-08-22 — Prompt generated from the approved mission artifacts.
+- 2026-08-22T10:36:09Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Assigned agent via action command
