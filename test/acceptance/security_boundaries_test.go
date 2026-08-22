@@ -339,7 +339,7 @@ func TestSourcePackagingDoesNotRequireGNUTarCreationFlags(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, flag := range []string{"--sort=name", "--owner=", "--group=", "--numeric-owner", "--mtime=", "--mode="} {
+	for _, flag := range []string{"--sort=name", "--owner=", "--group=", "--numeric-owner", "--mtime=", "--mode=", "-printf", "-perm /"} {
 		if bytes.Contains(script, []byte(flag)) {
 			t.Errorf("source packaging depends on GNU tar flag %q", flag)
 		}

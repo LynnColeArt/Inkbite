@@ -178,12 +178,8 @@ build_source_packages_raw() (
   find "$package_dir" -type f -exec chmod 0644 {} +
   find "$package_dir" -exec touch -t "$ARCHIVE_TIMESTAMP" {} +
 
-  (
-    cd "$stage_dir"
-    tar --sort=name --owner=0 --group=0 --numeric-owner --mtime='@946684800' --mode='u=rwX,go=rX' -cf - "$archive_name" |
-      gzip -n >"$output_dir/$tar_name"
-    find "$archive_name" -print | LC_ALL=C sort | zip -X -q "$output_dir/$zip_name" -@
-  )
+  GOTOOLCHAIN="$PINNED_TOOLCHAIN" go run ./scripts/package-source.go \
+    "$package_dir" "$archive_name" "$output_dir/$tar_name" "$output_dir/$zip_name"
   write_source_checksums "$output_dir" "$tar_name" "$zip_name"
 )
 
@@ -195,10 +191,12 @@ inspect_source_tree() {
     echo "source archive contains a symlink" >&2
     return 1
   fi
-  if [[ -n "$(find "$tree" -type f -perm /111 -print -quit)" ]]; then
-    echo "source archive contains an executable file mode" >&2
-    return 1
-  fi
+  while IFS= read -r relative; do
+    if [[ -x "$relative" ]]; then
+      echo "source archive contains an executable file mode" >&2
+      return 1
+    fi
+  done < <(find "$tree" -type f -print)
   while IFS= read -r relative; do
     relative="${relative#./}"
     case "$relative" in
@@ -234,7 +232,7 @@ inspect_source_archive() (
     tar) tar -xzf "$archive" -C "$extracted" ;;
     zip) unzip -qq "$archive" -d "$extracted" ;;
   esac
-  if [[ "$(find "$extracted" -mindepth 1 -maxdepth 1 -printf '%f\n')" != "$archive_name" || ! -d "$extracted/$archive_name" ]]; then
+  if [[ "$(cd "$extracted" && find . -mindepth 1 -maxdepth 1 -print | sed 's#^\./##')" != "$archive_name" || ! -d "$extracted/$archive_name" ]]; then
     echo "source archive has an invalid top-level manifest" >&2
     return 1
   fi
@@ -249,7 +247,7 @@ verify_source_packages() (
   archive_name="$(source_archive_stem "$binary" "$version")"
   tar_name="$archive_name.tar.gz"
   zip_name="$archive_name.zip"
-  actual="$(cd "$output_dir" && find . -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort)"
+  actual="$(cd "$output_dir" && find . -mindepth 1 -maxdepth 1 -print | sed 's#^\./##' | LC_ALL=C sort)"
   if [[ "$actual" != "checksums.txt
 $tar_name
 $zip_name" ]]; then
