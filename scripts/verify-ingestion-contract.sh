@@ -178,7 +178,7 @@ build_source_packages_raw() (
   find "$package_dir" -type f -exec chmod 0644 {} +
   find "$package_dir" -exec touch -t "$ARCHIVE_TIMESTAMP" {} +
 
-  GOTOOLCHAIN="$PINNED_TOOLCHAIN" go run ./scripts/package-source.go \
+  GOTOOLCHAIN="$PINNED_TOOLCHAIN" go run ./scripts/package-source.go create \
     "$package_dir" "$archive_name" "$output_dir/$tar_name" "$output_dir/$zip_name"
   write_source_checksums "$output_dir" "$tar_name" "$zip_name"
 )
@@ -230,7 +230,7 @@ inspect_source_archive() (
   git archive --format=tar HEAD | tar -x -C "$expected"
   case "$format" in
     tar) tar -xzf "$archive" -C "$extracted" ;;
-    zip) unzip -qq "$archive" -d "$extracted" ;;
+    zip) GOTOOLCHAIN="$PINNED_TOOLCHAIN" go run ./scripts/package-source.go extract-zip "$archive" "$extracted" ;;
   esac
   if [[ "$(cd "$extracted" && find . -mindepth 1 -maxdepth 1 -print | sed 's#^\./##')" != "$archive_name" || ! -d "$extracted/$archive_name" ]]; then
     echo "source archive has an invalid top-level manifest" >&2
@@ -392,9 +392,6 @@ run_quality() {
   require_tool staticcheck
   require_tool govulncheck
   require_tool tar
-  require_tool gzip
-  require_tool zip
-  require_tool unzip
 
   capture_quality_cleanliness
 
@@ -437,18 +434,12 @@ case "${1:-quality}" in
   package)
     require_tool git
     require_tool tar
-    require_tool gzip
-    require_tool zip
-    require_tool unzip
     build_packages "${4:-dist}" "${2:-dev}" "${3:-inkbite}"
     printf 'wrote %s/checksums.txt\n' "${4:-dist}"
     ;;
   verify-source-package)
     require_tool git
     require_tool tar
-    require_tool gzip
-    require_tool zip
-    require_tool unzip
     verify_source_packages "${4:-dist}" "${2:-dev}" "${3:-inkbite}"
     ;;
   release-surfaces)

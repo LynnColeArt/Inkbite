@@ -8,11 +8,14 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -26,18 +29,33 @@ type archiveEntry struct {
 }
 
 func main() {
-	if len(os.Args) != 5 {
-		fatalf("usage: package-source ROOT ARCHIVE_NAME TAR_GZ ZIP")
+	if len(os.Args) < 2 {
+		fatalf("usage: package-source create ROOT ARCHIVE_NAME TAR_GZ ZIP | extract-zip ZIP DESTINATION")
 	}
-	entries, err := collectEntries(os.Args[1], os.Args[2])
-	if err != nil {
-		fatalf("collect source archive: %v", err)
-	}
-	if err := writeTarGzip(os.Args[3], entries); err != nil {
-		fatalf("write source tar.gz: %v", err)
-	}
-	if err := writeZIP(os.Args[4], entries); err != nil {
-		fatalf("write source zip: %v", err)
+	switch os.Args[1] {
+	case "create":
+		if len(os.Args) != 6 {
+			fatalf("usage: package-source create ROOT ARCHIVE_NAME TAR_GZ ZIP")
+		}
+		entries, err := collectEntries(os.Args[2], os.Args[3])
+		if err != nil {
+			fatalf("collect source archive: %v", err)
+		}
+		if err := writeTarGzip(os.Args[4], entries); err != nil {
+			fatalf("write source tar.gz: %v", err)
+		}
+		if err := writeZIP(os.Args[5], entries); err != nil {
+			fatalf("write source zip: %v", err)
+		}
+	case "extract-zip":
+		if len(os.Args) != 4 {
+			fatalf("usage: package-source extract-zip ZIP DESTINATION")
+		}
+		if err := extractZIP(os.Args[2], os.Args[3]); err != nil {
+			fatalf("extract source zip: %v", err)
+		}
+	default:
+		fatalf("unknown package-source command %q", os.Args[1])
 	}
 }
 
@@ -159,6 +177,56 @@ func writeZIP(path string, entries []archiveEntry) (resultErr error) {
 	return nil
 }
 
+func extractZIP(archivePath, destination string) error {
+	archive, err := zip.OpenReader(archivePath)
+	if err != nil {
+		return err
+	}
+	defer archive.Close()
+	for _, file := range archive.File {
+		name := strings.TrimSuffix(file.Name, "/")
+		if name == "" || path.IsAbs(name) || strings.Contains(name, "\\") || path.Clean(name) != name || strings.HasPrefix(name, "../") {
+			return fmt.Errorf("unsafe zip entry %q", file.Name)
+		}
+		target := filepath.Join(destination, filepath.FromSlash(name))
+		relative, err := filepath.Rel(destination, target)
+		if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+			return fmt.Errorf("zip entry escapes destination")
+		}
+		if file.FileInfo().IsDir() || strings.HasSuffix(file.Name, "/") {
+			if err := os.MkdirAll(target, 0o755); err != nil {
+				return err
+			}
+			continue
+		}
+		if !file.Mode().IsRegular() {
+			return fmt.Errorf("unsupported zip entry %q", file.Name)
+		}
+		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+			return err
+		}
+		if err := extractZIPFile(file, target); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func extractZIPFile(file *zip.File, target string) (resultErr error) {
+	source, err := file.Open()
+	if err != nil {
+		return err
+	}
+	defer closeWithError(source, &resultErr)
+	destination, err := os.OpenFile(target, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	defer closeWithError(destination, &resultErr)
+	_, err = io.Copy(destination, source)
+	return err
+}
+
 func copyFile(destination io.Writer, path string) (resultErr error) {
 	source, err := os.Open(path)
 	if err != nil {
@@ -170,7 +238,7 @@ func copyFile(destination io.Writer, path string) (resultErr error) {
 }
 
 func closeWithError(closer io.Closer, resultErr *error) {
-	if err := closer.Close(); *resultErr == nil && err != nil {
+	if err := closer.Close(); *resultErr == nil && err != nil && !errors.Is(err, os.ErrClosed) {
 		*resultErr = err
 	}
 }

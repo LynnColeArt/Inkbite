@@ -320,11 +320,12 @@ build_packages() {
   printf 'package' >"$1/archive"
   printf 'hash  archive\n' >"$1/checksums.txt"
 }
+require_tool() { :; }
 sha256_file() { printf 'hash\n'; }
 caller_frame() { verify_package_reproducibility; }
 caller_frame
 `
-	command := exec.Command("bash")
+	command := exec.Command(bashExecutable())
 	command.Dir = filepath.Join("..", "..")
 	command.Stdin = strings.NewReader(probe)
 	output, err := command.CombinedOutput()
@@ -476,7 +477,7 @@ git() {
 }
 run_quality
 `
-			command := exec.Command("bash")
+			command := exec.Command(bashExecutable())
 			command.Dir = worktree
 			command.Stdin = strings.NewReader(probe)
 			command.Env = append(os.Environ(),
@@ -528,10 +529,7 @@ func TestSourceOnlyReleaseContractAndArchiveMutations(t *testing.T) {
 			addZIPEntry(t, mutated, "inkbite_contract_source/vendor/dependency.go", []byte("package dependency"))
 		}},
 		{name: "missing required file", mutate: func(t *testing.T, mutated string) {
-			command := exec.Command("zip", "-qd", filepath.Join(mutated, "inkbite_contract_source.zip"), "inkbite_contract_source/README.md")
-			if output, err := command.CombinedOutput(); err != nil {
-				t.Fatalf("remove required archive entry: %v\n%s", err, output)
-			}
+			removeZIPEntry(t, mutated, "inkbite_contract_source/README.md")
 		}},
 		{name: "extra entry", mutate: func(t *testing.T, mutated string) {
 			addZIPEntry(t, mutated, "inkbite_contract_source/EXTRA", []byte("extra"))
@@ -550,7 +548,7 @@ func TestSourceOnlyReleaseContractAndArchiveMutations(t *testing.T) {
 			copyReleaseFiles(t, dist, mutated)
 			mutation.mutate(t, mutated)
 			writeReleaseChecksums(t, mutated)
-			command := exec.Command(filepath.Join(repository, "scripts", "verify-ingestion-contract.sh"), "verify-source-package", "contract", "inkbite", mutated)
+			command := releaseScriptCommand(repository, "verify-source-package", "contract", "inkbite", mutated)
 			command.Dir = repository
 			if output, err := command.CombinedOutput(); err == nil {
 				t.Fatalf("release mutation was accepted:\n%s", output)
@@ -619,7 +617,7 @@ func TestSourceOnlyPublicationSurfacesAndMutations(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			command := exec.Command(filepath.Join(repository, "scripts", "verify-ingestion-contract.sh"), "release-surfaces", fixture)
+			command := releaseScriptCommand(repository, "release-surfaces", fixture)
 			command.Dir = repository
 			if output, err := command.CombinedOutput(); err == nil {
 				t.Fatalf("publication mutation was accepted:\n%s", output)
@@ -630,11 +628,37 @@ func TestSourceOnlyPublicationSurfacesAndMutations(t *testing.T) {
 
 func runReleaseScript(t *testing.T, repository string, arguments ...string) {
 	t.Helper()
-	command := exec.Command(filepath.Join(repository, "scripts", "verify-ingestion-contract.sh"), arguments...)
+	command := releaseScriptCommand(repository, arguments...)
 	command.Dir = repository
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("release command %v: %v\n%s", arguments, err, output)
 	}
+}
+
+func releaseScriptCommand(repository string, arguments ...string) *exec.Cmd {
+	if runtime.GOOS == "windows" {
+		for index := range arguments {
+			arguments[index] = filepath.ToSlash(arguments[index])
+		}
+	}
+	script := filepath.ToSlash(filepath.Join(repository, "scripts", "verify-ingestion-contract.sh"))
+	return exec.Command(bashExecutable(), append([]string{script}, arguments...)...)
+}
+
+func bashExecutable() string {
+	if runtime.GOOS != "windows" {
+		return "bash"
+	}
+	for _, root := range []string{os.Getenv("ProgramFiles"), os.Getenv("ProgramW6432")} {
+		if root == "" {
+			continue
+		}
+		candidate := filepath.Join(root, "Git", "bin", "bash.exe")
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			return candidate
+		}
+	}
+	return "bash"
 }
 
 func copyReleaseFiles(t *testing.T, source, target string) {
@@ -656,18 +680,76 @@ func copyReleaseFiles(t *testing.T, source, target string) {
 
 func addZIPEntry(t *testing.T, dist, name string, contents []byte) {
 	t.Helper()
-	stage := t.TempDir()
-	path := filepath.Join(stage, filepath.FromSlash(name))
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	rewriteZIPEntry(t, filepath.Join(dist, "inkbite_contract_source.zip"), name, contents, true)
+}
+
+func removeZIPEntry(t *testing.T, dist, name string) {
+	t.Helper()
+	rewriteZIPEntry(t, filepath.Join(dist, "inkbite_contract_source.zip"), name, nil, false)
+}
+
+func rewriteZIPEntry(t *testing.T, archivePath, name string, contents []byte, add bool) {
+	t.Helper()
+	source, err := zip.OpenReader(archivePath)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(path, contents, 0o600); err != nil {
+	temporary, err := os.CreateTemp(filepath.Dir(archivePath), "mutated-*.zip")
+	if err != nil {
+		_ = source.Close()
 		t.Fatal(err)
 	}
-	command := exec.Command("zip", "-q", filepath.Join(dist, "inkbite_contract_source.zip"), filepath.ToSlash(name))
-	command.Dir = stage
-	if output, err := command.CombinedOutput(); err != nil {
-		t.Fatalf("add archive entry: %v\n%s", err, output)
+	temporaryPath := temporary.Name()
+	writer := zip.NewWriter(temporary)
+	for _, file := range source.File {
+		if file.Name == name {
+			continue
+		}
+		header := file.FileHeader
+		destination, createErr := writer.CreateHeader(&header)
+		if createErr != nil {
+			t.Fatal(createErr)
+		}
+		if file.FileInfo().IsDir() {
+			continue
+		}
+		input, openErr := file.Open()
+		if openErr != nil {
+			t.Fatal(openErr)
+		}
+		if _, copyErr := io.Copy(destination, input); copyErr != nil {
+			_ = input.Close()
+			t.Fatal(copyErr)
+		}
+		if closeErr := input.Close(); closeErr != nil {
+			t.Fatal(closeErr)
+		}
+	}
+	if add {
+		header := &zip.FileHeader{Name: filepath.ToSlash(name), Method: zip.Deflate}
+		header.SetMode(0o644)
+		destination, err := writer.CreateHeader(header)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := destination.Write(contents); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := temporary.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := source.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(archivePath); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(temporaryPath, archivePath); err != nil {
+		t.Fatal(err)
 	}
 }
 
