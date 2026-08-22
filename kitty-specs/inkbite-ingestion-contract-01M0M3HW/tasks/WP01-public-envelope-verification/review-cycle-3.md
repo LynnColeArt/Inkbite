@@ -1,7 +1,7 @@
 ---
 affected_files:
-  - ingestion_verify.go
-  - ingestion_verify_test.go
+  - path: ingestion_verify.go
+  - path: ingestion_verify_test.go
 cycle_number: 3
 mission_slug: inkbite-ingestion-contract-01M0M3HW
 reproduction_command: GOTOOLCHAIN=go1.26.6 go test -count=1 ./...

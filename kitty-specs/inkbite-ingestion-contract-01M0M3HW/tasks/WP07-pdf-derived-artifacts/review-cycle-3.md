@@ -1,7 +1,7 @@
 ---
 affected_files:
-  - ingestion.go
-  - converters/pdf/artifact_limits_test.go
+  - path: ingestion.go
+  - path: converters/pdf/artifact_limits_test.go
 cycle_number: 3
 mission_slug: inkbite-ingestion-contract-01M0M3HW
 reproduction_command: GOTOOLCHAIN=go1.26.6 go test ./converters/pdf -run TestWP07ReviewDoesNotRewriteEmbeddedSubstring -count=1
