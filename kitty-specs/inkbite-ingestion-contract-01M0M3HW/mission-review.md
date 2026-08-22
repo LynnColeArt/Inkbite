@@ -5,7 +5,7 @@
 **Mission**: `inkbite-ingestion-contract-01M0M3HW` — Inkbite Ingestion Contract
 **Baseline commit**: `b32e63144bb3b4792ce52b8551a95fb8d3bb8f65`
 **Merged product commit**: `7d0c3ad`
-**HEAD at final review**: `1c36a4976d6e3abb16e66f7057c753a04d13603a`
+**Reviewed product HEAD after remote portability correction**: `4a0b63d`
 **WPs reviewed**: WP01–WP09
 
 ## Gate Results
@@ -36,6 +36,12 @@
 - Portability: the PDF fixture remained 587 bytes with SHA-256
   `0c839d2bbb8c86f4a4ceb48706070efaed8c9880d15dd7a4b815b6de2b63a23b`
   under a fresh `core.autocrlf=true` checkout.
+- Remote portability correction: the first pull-request macOS run rejected GNU
+  `tar --sort=name`. Red `8418752` retained that contract; green `4a0b63d`
+  moved deterministic tar.gz/ZIP creation to Go standard-library writers and
+  removed GNU-only `find` predicates. Focused package mutations, Darwin and
+  Windows helper builds, full acceptance, and this complete quality command
+  then passed on the clean corrected tree.
 
 ### Gate 3 — Host boundary / cross-repository E2E
 
@@ -58,8 +64,8 @@
 - Files: [`issue-matrix.md`](issue-matrix.md) and
   [`acceptance-matrix.json`](acceptance-matrix.json)
 - Result: **PASS after post-merge evidence repair**.
-- Evidence: the issue matrix accounts for 17 material review/integration
-  findings with 13 `fixed`, 3 `verified-already-fixed`, one tooling follow-up,
+- Evidence: the issue matrix accounts for 18 material review/integration
+  findings with 14 `fixed`, 3 `verified-already-fixed`, one tooling follow-up,
   and no unknown or unowned rows. The acceptance matrix contains 46 passing
   FR/NFR/constraint/success criteria and eight `confirmed_absent` negative
   invariants.
