@@ -68,7 +68,7 @@ Apply the same bounded acquisition to bytes, readers, paths, file URIs, data URI
 
 ### T010 — Bound local source forms
 
-Write zero-dispatch at-limit/+1 tests for bytes, reader/seeker, path, file URI, and data URI. Ensure blocking readers cancel promptly and no partial source escapes.
+Write zero-dispatch at-limit/+1 tests for bytes, reader/seeker, path, file URI, and data URI. Ensure cooperative blocking readers cancel and join within one second with no partial source. Keep an arbitrary caller-owned non-cooperative `io.Reader` or `io.ReadSeeker` synchronously joined until its in-flight `Read` or `Seek` returns, then observe cancellation at the next checkpoint, return typed cancellation with no partial source, and never abandon an Inkbite-owned worker.
 
 ### T011 — Return exact owned source facts
 

@@ -24,6 +24,10 @@ Observable rules:
 4. No optional component, remote request, proxy, download, or inference occurs without explicit authority.
 5. Existing `Convert*` methods use the same pipeline and project the legacy Markdown/title result.
 
+### Reader cancellation
+
+Reader cancellation is enforced at cooperative boundaries without changing the accepted `io.Reader` or `io.ReadSeeker` surface. A pre-canceled request performs no caller `Seek` or `Read`. When a caller source implements `io.Closer`, Inkbite may call `Close` on cancellation; the one-second termination guarantee applies when that concrete interruption cooperatively unblocks the in-flight method. An arbitrary caller-owned non-cooperative `Read` or `Seek` remains synchronously joined until it returns, after which cancellation is observed at the next checkpoint and no partial source or successful result is returned. Inkbite does not race an arbitrary reader in a detached worker or report terminal completion while an Inkbite-owned worker remains unjoined.
+
 ### Pure verification
 
 ```go

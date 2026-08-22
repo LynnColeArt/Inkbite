@@ -205,7 +205,7 @@ The security change that legacy local/readers now receive the default 32 MiB bou
 - **Container red**: EPUB/OOXML/XLSX can exceed generic ZIP limits; duplicate/traversal/checksum cases are not uniformly denied.
 - **Artifact red**: PDF images exist only inline and cannot be retained or independently verified.
 - **Integrity red**: one-byte mutations, missing references, duplicate IDs, cross-envelope substitution, and reordered canonical facts are accepted absent a verifier.
-- **Cancellation/redaction red**: non-cooperative paths or raw source locations can outlive or leak past the public failure boundary.
+- **Cancellation/redaction red**: cooperative source, remote, or converter work can miss prompt joined cancellation; cancellation paths can expose partial bytes, abandon Inkbite-owned workers, or leak raw source locations. An arbitrary caller-owned non-cooperative `Read` or `Seek` remains synchronously joined and is classified at the next checkpoint rather than raced in a detached worker.
 
 Each red is committed before its production correction. Deletion/mutation of each central guard must make the corresponding test fail for the intended observable reason.
 
