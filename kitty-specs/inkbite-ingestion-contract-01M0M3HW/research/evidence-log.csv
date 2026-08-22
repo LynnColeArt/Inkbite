@@ -1,0 +1,20 @@
+evidence_id,source_id,claim,evidence_location,confidence,decision_refs
+E-001,S-001,"The public result contains only Markdown and title; the converter interface returns that result; no structured provenance or artifact contract exists.",result.go:3-11;converter.go:8-15;engine.go:55-146,high,R-001;R-010
+E-002,S-002,"All source forms are buffered; only remote responses have a default 32 MiB cap; caller hints override source facts and fact origin is not retained.",source.go:25-176;options.go:5-33;stream_info.go:19-40,high,R-003;R-004
+E-003,S-003,"Generic ZIP enforces 256 entries 8 MiB per entry 32 MiB aggregate and depth four but skips unsupported and most failed members.",converters/zip/zip.go:19-24;89-155,high,R-004;R-006
+E-004,S-004,"EPUB OOXML and XLSX use independent ZIP-backed readers without the generic ZIP aggregate policy.",converters/epub/epub.go:107-214;internal/ooxml/package.go:17-41;converters/xlsx/xlsx.go:56-94,high,R-004
+E-005,S-005,"PDF conversion already extracts ordered image bytes and metadata but exposes them only as optional base64 Markdown data URIs.",converters/pdf/pdf.go:178-242,high,R-002
+E-006,S-006,"Normal conversion is specified never to auto-download components; installed manifests already model component provider version backend and file digests.",INKBITE_COMPONENTS_SPEC.md:47-52;internal/components/types.go:34-56,high,R-007
+E-007,S-007,"Public typed errors support category matching but fallback attempt information is returned only when every converter fails.",errors.go:9-88;engine.go:105-146,high,R-006;R-009
+E-008,S-008,"The CLI deadline wrapper may return when context expires while non-cooperative conversion continues in its goroutine.",cmd/inkbite/main.go:177-199,high,R-009
+E-009,S-009,"Inkbite is MIT licensed and its charter requires MIT-compatible adoption records and explicit authority boundaries.",LICENSE;.kittify/charter/charter.md,high,R-011
+E-010,S-010,"Adding methods to an exported interface breaks implementations; adding fields breaks unkeyed literals and can break comparability; v1-compatible changes require additive APIs.",official compatibility guidance,high,R-001
+E-011,S-011,"SHA-256 identifies exact bytes with a 256-bit digest but matching digest data alone does not authenticate or authorize the source.",NIST FIPS 180-4;NIST SP 800-107r1;RFC 9530,high,R-002
+E-012,S-012,"Go follows redirects by default and exposes redirect and connection hooks; default transport may use ambient proxies and transparent compression.",net/http Client and Transport documentation,high,R-005
+E-013,S-013,"Go documents that IsPrivate covers limited ranges and is not an access-control predicate; IsGlobalUnicast includes private addresses.",net/netip documentation,high,R-005
+E-014,S-014,"The IPv4 special-purpose registry contains non-public classes beyond RFC1918 private space.",IANA IPv4 registry,high,R-005
+E-015,S-015,"IPv6 has its own special-purpose classes and HTTP automatic redirects require rejecting userinfo and protecting sensitive fields.",IANA IPv6 registry;RFC 9110,high,R-005
+E-016,S-016,"MIT is the SPDX identifier and its notice must accompany copies or substantial portions.",SPDX MIT record;OSI MIT text,high,R-011
+E-017,S-017,"SPDX identifiers supplement rather than replace notices and package provenance separates version VCS location license copyright and attribution.",SPDX guidance and package information,high,R-011
+E-018,S-018,"Compressed inputs can amplify resource use; ZIP header sizes are only admission hints while actual reads checksums path safety duplicates and limit-plus-one detection require explicit enforcement.",CWE-409;archive/zip;os.Root;io.LimitReader,high,R-004
+E-019,S-019,"Context cancellation signals work to stop but does not wait for completion; terminal cleanup must synchronize mission-owned workers.",context package and CancelFunc documentation,high,R-009

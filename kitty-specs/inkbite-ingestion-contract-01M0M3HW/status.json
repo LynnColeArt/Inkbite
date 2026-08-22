@@ -1,0 +1,84 @@
+{
+  "event_count": 123,
+  "last_event_id": "01M0N51NABSEQ2BR8D0FEV2ZVG",
+  "materialized_at": "2026-08-22T16:32:15.691468+00:00",
+  "mission_number": "1",
+  "mission_slug": "inkbite-ingestion-contract-01M0M3HW",
+  "mission_type": "software-dev",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 9,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "force_count": 4,
+      "lane": "done",
+      "last_event_id": "01M0N51HJ7PE6N2S49WHT5A5CC",
+      "last_transition_at": "2026-08-22T16:32:11.847821+00:00"
+    },
+    "WP02": {
+      "actor": "merge",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01M0N51J3ECG8GS5F0M5R1R5SN",
+      "last_transition_at": "2026-08-22T16:32:12.398668+00:00"
+    },
+    "WP03": {
+      "actor": "merge",
+      "force_count": 3,
+      "lane": "done",
+      "last_event_id": "01M0N51JHZSWPS8P1894WC8MES",
+      "last_transition_at": "2026-08-22T16:32:12.863190+00:00"
+    },
+    "WP04": {
+      "actor": "merge",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01M0N51K0VYH792CE5AEMN4138",
+      "last_transition_at": "2026-08-22T16:32:13.340018+00:00"
+    },
+    "WP05": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01M0N51KF4ZME75R4J06PRH22Y",
+      "last_transition_at": "2026-08-22T16:32:13.796807+00:00"
+    },
+    "WP06": {
+      "actor": "merge",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01M0N51KYWSMP8H5ET96JWRN02",
+      "last_transition_at": "2026-08-22T16:32:14.300583+00:00"
+    },
+    "WP07": {
+      "actor": "merge",
+      "force_count": 4,
+      "lane": "done",
+      "last_event_id": "01M0N51MD9HQX933N1ABDPAVAX",
+      "last_transition_at": "2026-08-22T16:32:14.762001+00:00"
+    },
+    "WP08": {
+      "actor": "merge",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01M0N51MVWTZFH97ATHN3DN2PP",
+      "last_transition_at": "2026-08-22T16:32:15.228436+00:00"
+    },
+    "WP09": {
+      "actor": "merge",
+      "force_count": 6,
+      "lane": "done",
+      "last_event_id": "01M0N51NABSEQ2BR8D0FEV2ZVG",
+      "last_transition_at": "2026-08-22T16:32:15.691468+00:00"
+    }
+  }
+}

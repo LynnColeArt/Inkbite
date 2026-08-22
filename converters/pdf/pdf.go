@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"image"
 	"io"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/LynnColeArt/Inkbite"
@@ -40,6 +42,8 @@ type extractor interface {
 type Converter struct {
 	extractors []extractor
 }
+
+var _ inkbite.DetailedConverter = (*Converter)(nil)
 
 // New returns a PDF converter.
 func New() *Converter {
@@ -118,6 +122,214 @@ func (c *Converter) Convert(
 	}, nil
 }
 
+// ConvertDetailed returns the legacy text projection together with ordered,
+// independently retainable embedded-image bytes. Detailed Markdown refers only
+// to envelope-local artifact IDs and never embeds data URIs.
+func (c *Converter) ConvertDetailed(
+	ctx context.Context,
+	r io.ReadSeeker,
+	info inkbite.StreamInfo,
+	opts inkbite.ConvertOptions,
+	policy inkbite.IngestionPolicy,
+) (inkbite.DetailedConversion, error) {
+	if err := checkContext(ctx); err != nil {
+		return inkbite.DetailedConversion{}, err
+	}
+	if _, err := r.Seek(0, io.SeekStart); err != nil {
+		return inkbite.DetailedConversion{}, err
+	}
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return inkbite.DetailedConversion{}, err
+	}
+	if err := checkContext(ctx); err != nil {
+		return inkbite.DetailedConversion{}, err
+	}
+
+	extractor, err := c.chooseExtractor(opts.PDFBackend)
+	if err != nil {
+		return inkbite.DetailedConversion{}, fmt.Errorf("pdf: %w", err)
+	}
+	text, err := extractor.Extract(ctx, data)
+	if err != nil {
+		return inkbite.DetailedConversion{}, err
+	}
+	markdown := layoutToMarkdown(text)
+
+	images, imageErr := extractPDFImages(ctx, data)
+	if imageErr != nil {
+		if terminalDetailedImageError(imageErr) {
+			return inkbite.DetailedConversion{}, imageErr
+		}
+		if int64(len(markdown)) > policy.MaxPrimaryBytes {
+			return inkbite.DetailedConversion{}, inkbite.ErrLimitExceeded
+		}
+		return inkbite.DetailedConversion{
+			Result:    inkbite.Result{Markdown: markdown},
+			Artifacts: make([]inkbite.DetailedArtifact, 0),
+			Warnings: []inkbite.WarningRecord{{
+				Category:  "artifact_extraction_failed",
+				Converter: "pdf",
+				Detail:    "image extraction failed",
+			}},
+			Backend: extractor.Name(),
+			Facts:   make([]inkbite.MetadataFact, 0),
+		}, nil
+	}
+
+	artifacts, err := detailedImageArtifacts(ctx, images, policy)
+	if err != nil {
+		return inkbite.DetailedConversion{}, err
+	}
+	markdown = appendDetailedImageReferences(markdown, artifacts)
+	if int64(len(markdown)) > policy.MaxPrimaryBytes {
+		return inkbite.DetailedConversion{}, inkbite.ErrLimitExceeded
+	}
+	return inkbite.DetailedConversion{
+		Result:    inkbite.Result{Markdown: markdown},
+		Artifacts: artifacts,
+		Warnings:  make([]inkbite.WarningRecord, 0),
+		Backend:   extractor.Name(),
+		Facts:     make([]inkbite.MetadataFact, 0),
+	}, nil
+}
+
+func terminalDetailedImageError(err error) bool {
+	return errors.Is(err, context.Canceled) ||
+		errors.Is(err, context.DeadlineExceeded) ||
+		errors.Is(err, inkbite.ErrCancellation) ||
+		errors.Is(err, inkbite.ErrLimitExceeded) ||
+		errors.Is(err, inkbite.ErrPolicyViolation) ||
+		errors.Is(err, inkbite.ErrIntegrityFailure)
+}
+
+func detailedImageArtifacts(
+	ctx context.Context,
+	images []extractedImage,
+	policy inkbite.IngestionPolicy,
+) ([]inkbite.DetailedArtifact, error) {
+	if len(images) > policy.MaxArtifacts {
+		return nil, inkbite.ErrLimitExceeded
+	}
+	artifacts := make([]inkbite.DetailedArtifact, 0, len(images))
+	var total int64
+	for _, image := range images {
+		if err := checkContext(ctx); err != nil {
+			return nil, err
+		}
+		byteLength := int64(len(image.Data))
+		if byteLength > policy.MaxArtifactBytes || total > policy.MaxTotalArtifactBytes-byteLength {
+			return nil, inkbite.ErrLimitExceeded
+		}
+		total += byteLength
+		extension := extensionForMediaType(image.MediaType)
+		if extension == "" || image.Page <= 0 || image.Object <= 0 {
+			return nil, inkbite.ErrIntegrityFailure
+		}
+		if image.Width < 0 || image.Height < 0 || image.Bpc < 0 {
+			return nil, inkbite.ErrIntegrityFailure
+		}
+		artifacts = append(artifacts, inkbite.DetailedArtifact{
+			Role:       inkbite.ArtifactRoleEmbeddedImage,
+			Bytes:      cloneImageBytes(image.Data),
+			MediaType:  image.MediaType,
+			SafeName:   fmt.Sprintf("page-%06d-object-%06d.%s", image.Page, image.Object, extension),
+			Occurrence: fmt.Sprintf("page-%06d/object-%06d", image.Page, image.Object),
+			Attributes: imageArtifactFacts(image),
+		})
+	}
+	return artifacts, nil
+}
+
+func cloneImageBytes(data []byte) []byte {
+	cloned := make([]byte, len(data))
+	copy(cloned, data)
+	return cloned[:len(cloned):len(cloned)]
+}
+
+func extensionForMediaType(mediaType string) string {
+	switch mediaType {
+	case "image/jpeg":
+		return "jpg"
+	case "image/png":
+		return "png"
+	case "image/tiff":
+		return "tiff"
+	case "image/webp":
+		return "webp"
+	default:
+		return ""
+	}
+}
+
+func imageArtifactFacts(image extractedImage) []inkbite.MetadataFact {
+	values := []struct {
+		kind  string
+		value string
+	}{
+		{kind: "bits_per_component", value: strconv.Itoa(image.Bpc)},
+		{kind: "height", value: strconv.Itoa(image.Height)},
+		{kind: "image_mask", value: strconv.FormatBool(image.ImageMask)},
+		{kind: "object", value: strconv.Itoa(image.Object)},
+		{kind: "page", value: strconv.Itoa(image.Page)},
+		{kind: "width", value: strconv.Itoa(image.Width)},
+	}
+	facts := make([]inkbite.MetadataFact, 0, len(values))
+	for _, value := range values {
+		facts = append(facts, inkbite.MetadataFact{
+			Kind:   value.kind,
+			Value:  value.value,
+			Origin: inkbite.MetadataOriginConverter,
+		})
+	}
+	return facts
+}
+
+func appendDetailedImageReferences(markdown string, artifacts []inkbite.DetailedArtifact) string {
+	if len(artifacts) == 0 {
+		return markdown
+	}
+	var out strings.Builder
+	out.WriteString(strings.TrimSpace(markdown))
+	if out.Len() > 0 {
+		out.WriteString("\n\n")
+	}
+	out.WriteString("## PDF Images\n\n")
+	for index, artifact := range artifacts {
+		if index > 0 {
+			out.WriteString("\n\n")
+		}
+		page := artifactFact(artifact.Attributes, "page")
+		object := artifactFact(artifact.Attributes, "object")
+		width := artifactFact(artifact.Attributes, "width")
+		height := artifactFact(artifact.Attributes, "height")
+		bpc := artifactFact(artifact.Attributes, "bits_per_component")
+		fmt.Fprintf(
+			&out,
+			"![PDF image page %s object %s %sx%s %s bpc](inkbite-artifact:artifact-%06d)\n\n",
+			page,
+			object,
+			width,
+			height,
+			bpc,
+			index+1,
+		)
+		out.WriteString("| Page | Object | Type | Dimensions | Bits/Component | Bytes |\n")
+		out.WriteString("| --- | --- | --- | --- | --- | --- |\n")
+		fmt.Fprintf(&out, "| %s | %s | %s | %sx%s | %s | %d |", page, object, artifact.MediaType, width, height, bpc, len(artifact.Bytes))
+	}
+	return out.String()
+}
+
+func artifactFact(facts []inkbite.MetadataFact, kind string) string {
+	for _, fact := range facts {
+		if fact.Kind == kind {
+			return fact.Value
+		}
+	}
+	return "unknown"
+}
+
 func (c *Converter) chooseExtractor(requested string) (extractor, error) {
 	requested = strings.ToLower(strings.TrimSpace(requested))
 	if requested == "" || requested == "auto" {
@@ -177,6 +389,7 @@ func (pureGoExtractor) Extract(ctx context.Context, data []byte) (string, error)
 
 type extractedImage struct {
 	Page       int
+	Object     int
 	Name       string
 	MediaType  string
 	FileType   string
@@ -294,9 +507,13 @@ func extractPDFImages(ctx context.Context, data []byte) ([]extractedImage, error
 				return nil, err
 			}
 			if extracted != nil {
+				extracted.Object = objNr
 				images = append(images, *extracted)
 			}
 		}
+	}
+	if len(images) == 0 && bytes.Contains(data, []byte("/Subtype /Image")) {
+		return nil, fmt.Errorf("embedded image extraction produced no retained payload")
 	}
 	return images, nil
 }

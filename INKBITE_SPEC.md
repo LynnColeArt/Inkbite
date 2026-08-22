@@ -1,502 +1,242 @@
-# Inkbite Spec
+# Inkbite Shipped Specification
 
-## Purpose
+## Status and authority
 
-Build Inkbite, a Go implementation optimized for extracting useful surface context as Markdown.
+This document describes the public behavior present in the repository. The
+approved detailed-ingestion authorities are the
+[public API contract](kitty-specs/inkbite-ingestion-contract-01M0M3HW/contracts/public-api.md)
+and [v1 JSON Schema](kitty-specs/inkbite-ingestion-contract-01M0M3HW/contracts/ingestion-envelope-v1.schema.json).
+When this document and executable behavior differ, tests and those approved
+contracts identify the defect; this file does not grant authority to rewrite
+the approved contracts.
 
-This is not a parity rewrite of the upstream Python package. The Go port should prioritize:
+The detailed contract identifier is `inkbite.ingestion/v1`. Future
+incompatible wire behavior requires another contract version and translation,
+not silent mutation of v1.
 
-- fast, deterministic extraction
-- simple deployment
-- useful context for LLM ingestion and indexing
-- graceful degradation on complex documents
+## Product boundary
 
-The Go port should not spend early effort on high-fidelity layout reproduction, OCR, or niche document edge cases.
+Inkbite converts supported document sources to normalized Markdown. The
+detailed operation additionally returns owned source bytes, the primary
+Markdown artifact, zero or more independently retainable derivatives,
+deterministic provenance, and ordered warnings.
 
-## Product Definition
+The shipped conversion path does not provide OCR, inference, image captioning,
+audio transcription, full visual-layout reconstruction, hidden external
+fallbacks, automatic model or component downloads, or durable persistence.
+Reduced-scope extraction is intentional for DOCX, PPTX, PDF, and XLS.
 
-### Working Definition
+## Legacy compatibility surface
 
-Inkbite is a stream-based document-to-Markdown extractor with:
-
-- a Go library API
-- a CLI
-- pluggable format converters
-- support for local files, readers, and selected URI schemes
-
-The output goal is readable, normalized Markdown that preserves major structure:
-
-- titles and headings
-- paragraphs
-- lists
-- links
-- tables, with DOCX and PDF table extraction treated as first-class targets
-- section boundaries
-
-### Explicit Non-Goals For MVP
-
-- exact output parity with Python MarkItDown
-- OCR
-- PDF layout reconstruction
-- DOCX comments/equations/track-changes support
-- PowerPoint chart/image caption intelligence
-- Outlook `.msg`
-- audio transcription
-- multimodal image captioning
-- plugin loading via native Go `plugin`
-- Azure Document Intelligence integration
-
-## Success Criteria
-
-The MVP is successful if it can:
-
-1. Convert common documents into useful Markdown for retrieval or prompt context.
-2. Handle stdin, local paths, `file:`, `data:`, and optional `http(s):` inputs through one API.
-3. Produce deterministic normalized output across runs.
-4. Avoid crashes on unsupported or malformed files and return clear errors.
-5. Cover the bulk of common ingest use cases with a single static binary and no required external helpers.
-
-## Scope
-
-### MVP Format Matrix
-
-| Format | MVP Support | Notes |
-| --- | --- | --- |
-| Plain text | Yes | Preserve text, normalize line endings |
-| HTML | Yes | Convert DOM to Markdown |
-| CSV | Yes | Markdown table |
-| JSON/XML | Yes | Treat as text unless RSS/Atom |
-| RSS/Atom | Yes | Extract feed and entry content |
-| IPYNB | Yes | Cells to Markdown/code fences |
-| ZIP | Yes | Recurse into supported files |
-| EPUB | Yes | Metadata plus spine content |
-| XLSX | Yes | Sheets to Markdown tables |
-| XLS | Maybe | Optional, lower priority |
-| DOCX | Yes, reduced | Headings, paragraphs, links, and basic tables |
-| PPTX | Yes, reduced | Slide titles, text, notes, simple tables |
-| PDF | Yes, reduced | Surface text plus best-effort digital table extraction |
-| Images | Maybe | Metadata only, if cheap |
-| Audio | No | Defer |
-| Outlook `.msg` | No | Defer |
-| YouTube URL | No | Defer for MVP |
-| Wikipedia/Bing special handlers | No | Defer for MVP |
-
-### Format Quality Bar
-
-For DOCX, PPTX, and PDF, "supported" means:
-
-- extract enough text to be useful as context
-- preserve simple tables when they can be detected reliably
-- preserve obvious section boundaries when possible
-- return plain Markdown, even if some structure is lost
-- prefer incomplete-but-readable output over brittle heuristics
-
-## Architecture
-
-### Top-Level Design
-
-The system should mirror the clean parts of upstream MarkItDown:
-
-- a dispatcher that accepts a source and produces `Result`
-- a registry of converters ordered by priority
-- a `StreamInfo` struct carrying type hints
-- a small normalization pipeline after conversion
-
-### Proposed Package Layout
-
-```text
-cmd/inkbite/
-    main.go
-
-converters/
-    text/
-    html/
-    csv/
-    rss/
-    ipynb/
-    zip/
-    epub/
-    xlsx/
-    xls/
-    docx/
-    pptx/
-    pdf/
-
-internal/
-    fetch/
-    markdown/
-    normalize/
-    sniff/
-    ooxml/
-    testdata/
-
-engine.go
-errors.go
-options.go
-result.go
-source.go
-stream_info.go
-```
-
-### Public API
+The original result is exactly two comparable fields:
 
 ```go
-type StreamInfo struct {
-    MIMEType  string
-    Extension string
-    Charset   string
-    Filename  string
-    LocalPath string
-    URL       string
-}
-
 type Result struct {
-    Markdown string
-    Title    string
+	Markdown string
+	Title    string
 }
-
-type ConvertOptions struct {
-    KeepDataURIs bool
-    EnableHTTP   bool
-    PDFBackend   string
-}
-
-type Converter interface {
-    Name() string
-    Priority() float64
-    Accepts(ctx context.Context, r io.ReadSeeker, info StreamInfo, opts ConvertOptions) bool
-    Convert(ctx context.Context, r io.ReadSeeker, info StreamInfo, opts ConvertOptions) (Result, error)
-}
-
-type Engine struct {
-    // registry and shared dependencies
-}
-
-func New(opts ...Option) *Engine
-func (e *Engine) Convert(ctx context.Context, src any, info *StreamInfo, opts ConvertOptions) (Result, error)
-func (e *Engine) ConvertPath(ctx context.Context, path string, info *StreamInfo, opts ConvertOptions) (Result, error)
-func (e *Engine) ConvertReader(ctx context.Context, r io.Reader, info *StreamInfo, opts ConvertOptions) (Result, error)
-func (e *Engine) ConvertURI(ctx context.Context, uri string, info *StreamInfo, opts ConvertOptions) (Result, error)
 ```
 
-### Source Handling
+It remains valid to construct `Result` positionally, compare it with `==`, use
+it as a map key, and call `TextContent`. The external compile fixture is
+[`test/contract/legacy_compatibility_test.go`](test/contract/legacy_compatibility_test.go).
 
-The engine should accept:
-
-- local path string
-- `[]byte`
-- `io.Reader`
-- `io.ReadSeeker`
-- `file:` URI
-- `data:` URI
-- optional `http:` and `https:` URI
-
-If the input stream is not seekable, the engine should buffer it into memory once and pass an `io.ReadSeeker` to converters.
-
-### Type Detection
-
-Detection order:
-
-1. user-provided `StreamInfo`
-2. extension-derived MIME guess
-3. content sniffing
-4. converter-specific checks
-
-Use content sniffing to improve routing, but do not overfit routing logic around brittle heuristics.
-
-## Converter Strategy
-
-### Core Rules
-
-- converters should be independent and deterministic
-- `Accepts` must not consume the stream
-- converters may assume they receive the stream from offset zero
-- the engine resets the stream between attempts
-- converters should return typed errors for unsupported vs failed conversion
-
-### Markdown Normalization
-
-Apply a final shared normalization pass:
-
-- normalize line endings to `\n`
-- trim trailing spaces
-- collapse 3+ blank lines to 2
-- remove empty heading lines
-- truncate huge `data:` URIs unless `KeepDataURIs` is true
-
-## Dependency Plan
-
-Use stable, focused libraries where they clearly reduce effort. Avoid large dependency stacks unless they buy substantial quality.
-
-### Recommended Dependencies
-
-| Area | Candidate | Role |
-| --- | --- | --- |
-| MIME sniffing | `github.com/gabriel-vasile/mimetype` | content-based type detection |
-| HTML to Markdown | `github.com/JohannesKaufmann/html-to-markdown/v2` | HTML conversion |
-| XLSX | `github.com/qax-os/excelize` | sheet extraction |
-| XLS | `github.com/shakinm/xlsReader` | basic legacy support with formatted cell recovery |
-| DOCX | evaluate `github.com/gomutex/godocx` first | surface text extraction |
-| PDF | pure Go backend | readable text and best-effort table extraction |
-
-### Dependency Guidance By Format
-
-#### HTML
-
-Use an HTML-to-Markdown library plus a small wrapper layer for:
-
-- data URI truncation
-- link cleanup
-- heading normalization
-
-#### DOCX
-
-Do not attempt Python's `mammoth` parity in MVP.
-
-Preferred order:
-
-1. spike on an existing Go DOCX reader
-2. if the library is too limited, parse OOXML directly from the DOCX zip
-
-MVP DOCX extraction targets:
-
-- document title if obvious
-- headings based on paragraph style when available
-- paragraph text
-- hyperlinks
-- simple tables as a required feature
-
-Explicitly ignore for MVP:
-
-- comments
-- equations
-- images
-- floating layout
-- style-map customization
-
-#### PPTX
-
-Treat PPTX as OOXML, not as a presentation rendering problem.
-
-MVP extraction targets:
-
-- slide boundaries
-- slide title
-- body text in reading order
-- notes text
-- simple tables
-
-Ignore for MVP:
-
-- images
-- chart reconstruction
-- grouped shape layout fidelity
-- smart art
-
-#### PDF
-
-PDF is the highest-risk format, so the design should separate backend choice from the engine.
-
-Define:
+The original converter interface remains sufficient:
 
 ```go
-type PDFExtractor interface {
-    Extract(ctx context.Context, r io.ReadSeeker) (string, error)
+type Converter interface {
+	Name() string
+	Priority() float64
+	Accepts(context.Context, io.ReadSeeker, StreamInfo, ConvertOptions) bool
+	Convert(context.Context, io.ReadSeeker, StreamInfo, ConvertOptions) (Result, error)
 }
 ```
 
-MVP strategy:
+`Engine.RegisterConverter`, `Engine.RegisteredConverters`, `Engine.Convert`,
+`Engine.ConvertPath`, `Engine.ConvertReader`, and `Engine.ConvertURI` retain
+their signatures. All legacy conversion entry points dispatch through the same
+engine pipeline as detailed ingestion and project the legacy Markdown/title
+result.
 
-1. ship a pure Go text extractor backend
-2. add best-effort table extraction for digital PDFs
-3. keep the extractor self-contained inside the Go binary
-4. default to the built-in backend
+The shipped legacy options are:
 
-Do not implement in MVP:
-
-- borderless table heuristics
-- form reconstruction
-- OCR
-- full layout fidelity or page geometry parity
-
-#### ZIP
-
-ZIP should recurse into supported file types and produce sectioned output like:
-
-```md
-Content from zip file `foo.zip`
-
-## File: docs/readme.txt
-...
-
-## File: reports/q1.xlsx
-...
+```go
+type ConvertOptions struct {
+	KeepDataURIs bool
+	EnableHTTP   bool
+	MaxHTTPBytes int64
+	PDFBackend   string
+}
 ```
 
-## CLI Spec
+`PDFBackend` accepts `auto` and `purego`. No other PDF backend is shipped.
 
-### Binary Name
+## Detailed ingestion
 
-Use `inkbite` as the primary binary name.
+```go
+func (e *Engine) Ingest(
+	ctx context.Context,
+	source any,
+	hints *StreamInfo,
+	options IngestOptions,
+) (IngestionEnvelope, error)
 
-### Initial Flags
+func VerifyEnvelope(envelope IngestionEnvelope) VerificationReport
+```
 
-- `-o, --output`: write Markdown to file
-- `-x, --extension`: extension hint
-- `-m, --mime-type`: MIME hint
-- `-c, --charset`: charset hint
-- `--keep-data-uris`: keep inline data URIs
-- `--http`: allow remote fetches
-- `--pdf-backend`: `auto|purego`
-- `--list-formats`: print supported formats
-- `-v, --version`: print version
+`Ingest` is additive; it does not enlarge `Result` or require legacy
+converters to implement a new interface. When a converter only implements
+`Converter`, the engine creates source identity, primary artifact, provenance,
+and empty derivative/warning collections around the legacy result.
 
-### CLI Behavior
+`DetailedConverter` is an optional capability that may return raw derivatives,
+safe facts, safe warnings, backend, and explicitly selected component labels.
+The engine assigns artifact IDs and identities, canonicalizes order and
+references, applies output budgets, and verifies the final envelope.
 
-- if no filename is given, read binary data from stdin
-- if stdout encoding is limited, replace invalid runes rather than failing
-- return non-zero exit code on conversion failure
+`VerifyEnvelope` recomputes identities and lengths; validates contract version,
+shape, ordering, references, and policy consistency; and returns ordered typed
+findings. It performs no I/O, conversion, persistence, component invocation, or
+network request.
 
-## Testing Strategy
+## Source kinds and ownership
 
-### Test Philosophy
+The engine accepts local path strings, `[]byte`, `io.Reader`, `io.ReadSeeker`,
+and `file:`, `data:`, `http:`, or `https:` URI strings. The resulting public
+source kinds are `bytes`, `reader`, `file`, `data_uri`, and `remote`.
 
-Do not test for exact parity with Python output. Test for semantic usefulness and structural presence.
+Successful envelopes own exact copies of source and output bytes. They do not
+alias caller buffers or mutable converter scratch storage. An error returns the
+zero envelope; no partial success is authoritative.
 
-### Test Layers
+Context cancellation is checked at cooperative boundaries. A caller-owned
+non-cooperative `Read` or `Seek` remains synchronously joined until it returns;
+Inkbite does not claim completed cancellation while its own worker continues in
+the background.
 
-1. unit tests for source parsing, sniffing, normalization, and URI handling
-2. converter tests using small fixtures per format
-3. golden tests for representative end-to-end files
-4. regression tests for panic-proofing malformed inputs
+## Default policy
 
-### Fixture Reuse
+`DefaultIngestionPolicy` materializes these exported constants:
 
-Reuse a subset of upstream MarkItDown test files where helpful, but relax assertions to match the reduced scope.
+| Constant | Value |
+| --- | ---: |
+| `DefaultMaxSourceBytes` | `33554432` |
+| `DefaultMaxPrimaryBytes` | `33554432` |
+| `DefaultMaxArtifacts` | `256` |
+| `DefaultMaxArtifactBytes` | `8388608` |
+| `DefaultMaxTotalArtifactBytes` | `33554432` |
+| `DefaultMaxContainerEntries` | `256` |
+| `DefaultMaxContainerEntryBytes` | `8388608` |
+| `DefaultMaxExpandedBytes` | `33554432` |
+| `DefaultMaxContainerDepth` | `4` |
+| `DefaultMaxExpansionRatio` | `1000` |
+| `Remote.Enabled` | `false` |
+| `Component` | `""` |
 
-Good candidates:
+The zero `IngestOptions.Policy` selects these defaults. A nonzero policy is
+validated as supplied; missing fields are not filled independently.
 
-- simple DOCX
-- simple PDF
-- simple PDF tables
-- XLSX
-- EPUB
-- HTML
-- IPYNB
-- ZIP
+Container accounting covers ZIP, EPUB, DOCX, PPTX, and XLSX before trusted
+expansion. Source, primary output, derivative count, per-derivative bytes, and
+aggregate derivative bytes are also bounded.
 
-Avoid importing Python-only fidelity expectations such as:
+## Remote and component authority
 
-- DOCX comment preservation
-- PDF table layout parity
-- PowerPoint chart rendering
+Remote acquisition is disabled by default. A remote request requires
+`Policy.Remote.Enabled` for detailed ingestion (or `ConvertOptions.EnableHTTP`
+for legacy conversion) and a caller-supplied HTTP client installed with
+`WithHTTPClient`. Redirect destinations and resolved address classes are
+re-evaluated, and response bytes remain bounded.
 
-### Acceptance Assertions
+The standalone CLI exposes `--http` but no transport-injection option, so that
+flag supplies only the request opt-in and remote acquisition still fails closed.
 
-For reduced-scope formats, assert things like:
+`IngestionPolicy.Component` is an explicit selection label. An installed
+managed component is not selected merely because it exists. Managed component
+installation is a separate CLI command; normal conversion never downloads or
+installs anything.
 
-- key headings are present
-- representative body text is present
-- gross section order is preserved
-- converter returns non-empty Markdown
-- unsupported features do not crash conversion
+## Identity, artifacts, and references
 
-## Milestones
+Content identity is `sha256:<64 lowercase hexadecimal characters>` over exact
+bytes. Identity proves byte equality only; it is not proof of origin,
+authorship, safety, or execution authority.
 
-### Milestone 0: Scaffold
+The primary artifact ID is `artifact-000000`. Derivatives receive deterministic
+envelope-local IDs beginning at `artifact-000001`. The currently shipped
+derivative role is `embedded_image` for extracted PDF images. References use
+`inkbite-artifact:<artifact-id>` and resolve only inside the same envelope.
 
-- module setup
-- engine and converter interface
-- stream handling
-- URI parsing
-- MIME sniffing
-- CLI skeleton
+The public relation kinds are `derived_from`, `embedded_in`, and
+`referenced_by`. A relation or Markdown reference never authorizes a network or
+filesystem lookup.
 
-Exit criteria:
+## Visible degradation and failures
 
-- text and HTML conversion work from file, stdin, and `data:` URI
+Warnings are canonical ordered `WarningRecord` values with safe category,
+converter, location, and detail fields. They never include raw source bytes,
+data-URI payloads, credentials, authorization headers, or backend stack traces.
 
-### Milestone 1: Easy Wins
+The shipped PPTX degradation category `optional_extraction_failed` records a
+referenced notes part that could not be parsed; the optional notes are omitted
+while the legacy Markdown projection remains unchanged. Converter fallback may
+also produce stable warnings without exposing backend error text.
 
-- CSV
-- RSS/Atom
-- IPYNB
-- EPUB
-- ZIP
-- XLSX
+Public failure categories are `unsupported`, `malformed`, `limit`, `policy`,
+`integrity`, `cancellation`, and `converter`. Callers use typed errors or
+`errors.Is`, not string parsing.
 
-Exit criteria:
+## Normalized Markdown and CLI
 
-- end-to-end ingest works for common text-heavy assets
+The shared normalizer uses `\n` line endings, trims trailing whitespace,
+collapses excessive blank lines, removes empty headings, and truncates large
+inline data URIs unless `KeepDataURIs` is enabled.
 
-### Milestone 2: Office Context
+The default CLI accepts a local source target, dispatches through the legacy
+engine projection, and writes only Markdown to stdout. It adds one terminal
+newline when nonempty Markdown lacks one. Success uses empty stderr and exit
+status zero. Unsupported, malformed, cancellation, and disabled-remote cases
+use empty stdout and a nonzero exit status. `cmd/inkbite/main.go`, the legacy
+`Result`, and default policy values are compatibility-frozen surfaces.
 
-- DOCX reduced extractor
-- PPTX reduced extractor
-- optional XLS
+## Built-in converter order
 
-Exit criteria:
+`builtins.RegisterDefaultConverters` registers:
 
-- surface text from common office docs is usable for indexing
+1. IPYNB
+2. XLSX
+3. XLS
+4. DOCX
+5. PPTX
+6. PDF
+7. CSV
+8. EPUB
+9. RSS
+10. ZIP
+11. HTML
+12. text
 
-### Milestone 3: PDF Baseline
+Registration completes before sharing an engine across goroutines. Conversion
+is concurrent-safe after configuration; concurrent registry mutation is not a
+supported operation.
 
-- pure Go PDF backend
-- best-effort digital table extraction
-- backend selection flag
+## Components and adoption
 
-Exit criteria:
+[INKBITE_COMPONENTS_SPEC.md](INKBITE_COMPONENTS_SPEC.md) records the exact
+shipped component-management boundary. It does not promise OCR conversion or a
+future provider.
 
-- readable text extraction and table preservation on typical digital PDFs
+[ADOPTED_COMPONENTS.md](ADOPTED_COMPONENTS.md) distinguishes design
+inspiration, copied code, and linked dependencies and records exact revisions,
+licenses, local modifications, notices, and distribution obligations.
 
-### Milestone 4: Hardening
+## Executable conformance evidence
 
-- performance pass
-- malformed file handling
-- larger fixture set
-- docs and release process
-
-## Risks
-
-### Technical Risks
-
-- PDF table extraction quality may be materially worse than Python on complex files.
-- Go DOCX/PPTX libraries may not provide enough reading fidelity, forcing direct OOXML parsing.
-- HTML-to-Markdown libraries may need customization to produce stable output.
-- Recursive ZIP conversion can become expensive on large archives if limits are not enforced.
-
-### Product Risks
-
-- users may assume parity with Python MarkItDown and be surprised by reduced fidelity
-- "supported" can become ambiguous unless docs clearly describe the reduced-scope contract
-
-## Guardrails
-
-- prefer deterministic output over clever heuristics
-- prefer readable tables when confidence is high, and readable plain text when it is not
-- keep converter contracts small and explicit
-- do not add format-specific complexity unless it materially improves context quality
-- improve built-in extraction before adding heavy heuristics
-
-## Suggested First Build Order
-
-1. engine, `StreamInfo`, normalization, CLI
-2. text and HTML
-3. CSV, RSS, IPYNB
-4. ZIP, EPUB, XLSX
-5. DOCX reduced
-6. PPTX reduced
-7. PDF reduced
-
-## Open Decisions
-
-1. Should remote HTTP fetching be enabled by default or opt-in?
-2. Do we want binary compatibility with Python CLI flags, or just conceptual compatibility?
-
-## Recommendation
-
-Proceed with a Go-native MVP based on reduced-scope extraction.
-
-Do not frame the first implementation as a full port. Frame it as:
-
-"A Go document ingester focused on fast, useful surface-context extraction."
+- External legacy and detailed API compatibility:
+  [`test/contract/legacy_compatibility_test.go`](test/contract/legacy_compatibility_test.go)
+- Go/JSON Schema roundtrip, defaults, documentation vocabulary, and links:
+  [`test/contract/ingestion_contract_test.go`](test/contract/ingestion_contract_test.go)
+- Exact default CLI output and failure snapshots:
+  [`cmd/inkbite/main_test.go`](cmd/inkbite/main_test.go)
+- Approved host durability flow:
+  [quickstart](kitty-specs/inkbite-ingestion-contract-01M0M3HW/quickstart.md)

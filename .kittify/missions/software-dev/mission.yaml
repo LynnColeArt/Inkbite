@@ -149,10 +149,12 @@ artifacts:
 
 # Path conventions for this mission
 paths:
-  workspace: "src/"
-  tests: "tests/"
-  deliverables: "contracts/"
-  documentation: "docs/"
+  # Inkbite is a single Go module: production packages and public docs live at
+  # the repository root, while black-box suites live under test/.
+  workspace: "."
+  tests: "."
+  deliverables: "kitty-specs/"
+  documentation: "."
 
 # Validation rules
 validation:

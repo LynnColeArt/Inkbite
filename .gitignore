@@ -46,3 +46,5 @@ __pycache__/
 .kittify/sync-state.json
 .kittify/workspaces/
 kitty-ops/ops-index.jsonl
+.worktrees/
+kitty-ops/lifecycle.jsonl

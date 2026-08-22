@@ -32,8 +32,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: 1.26.6
           cache: true
+
+      - name: Run retained acceptance
+        run: go test ./test/acceptance
 
       - name: Run tests
         run: go test ./...
@@ -43,6 +46,23 @@ jobs:
 
       - name: Verify CLI build
         run: go build -trimpath -ldflags "-X main.version=ci" -o ./bin/inkbite-ci ./cmd/inkbite
+
+      - name: Verify fresh autocrlf binary checkout
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $checkout = Join-Path $env:RUNNER_TEMP "inkbite-autocrlf"
+          git clone --no-hardlinks --no-checkout . $checkout
+          git -C $checkout config core.autocrlf true
+          git -C $checkout checkout --detach HEAD
+          $fixture = "converters/pdf/testdata/simple.pdf"
+          $source = Get-Item $fixture
+          $fresh = Get-Item (Join-Path $checkout $fixture)
+          if ($source.Length -ne $fresh.Length) { throw "binary fixture size changed" }
+          $sourceHash = (Get-FileHash -Algorithm SHA256 $fixture).Hash
+          $freshHash = (Get-FileHash -Algorithm SHA256 (Join-Path $checkout $fixture)).Hash
+          if ($sourceHash -ne $freshHash) { throw "binary fixture hash changed" }
+          if ($sourceHash -ne "0C839D2BBB8C86F4A4CEB48706070EFAED8C9880D15DD7A4B815B6DE2B63A23B") { throw "unexpected fixture identity" }
 
   race:
     name: race detector
@@ -55,7 +75,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: 1.26.6
           cache: true
 
       - name: Run race detector
@@ -72,16 +92,57 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: 1.26.6
           cache: true
 
       - name: Install govulncheck
-        run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
 
       - name: Run govulncheck
         run: govulncheck ./...
+
+  api-license:
+    name: API and license compatibility
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.6
+          cache: true
+
+      - name: Verify API and license inventory
+        run: ./scripts/verify-ingestion-contract.sh api-license
+
+  quality:
+    name: frozen ingestion quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.6
+          cache: true
+
+      - name: Install pinned quality tools
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
+          go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
+
+      - name: Run fixed-base quality gate
+        run: make quality COVERAGE_BASE_REF=ee5542edd1ac64b5f66dcb9d0056dd4815739342
 
   package:
     name: package release artifacts
@@ -89,6 +150,8 @@ jobs:
       - verify
       - race
       - security
+      - api-license
+      - quality
     runs-on: ubuntu-latest
 
     steps:
@@ -98,7 +161,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: 1.26.6
           cache: true
 
       - name: Build release archives
@@ -107,5 +170,9 @@ jobs:
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: inkbite-release-archives
-          path: dist/*
+          name: inkbite-source-archives
+          path: |
+            dist/inkbite_ci_source.tar.gz
+            dist/inkbite_ci_source.zip
+            dist/checksums.txt
+          if-no-files-found: error

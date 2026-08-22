@@ -25,6 +25,7 @@ type runtimeDeps struct {
 	version        string
 	executablePath string
 	helperSelfTest func(helperPath string, provider string, backend string) error
+	timeoutContext func(context.Context, time.Duration) (context.Context, context.CancelFunc)
 }
 
 func main() {
@@ -40,7 +41,7 @@ func run(args []string, stdout io.Writer, stderr io.Writer, deps runtimeDeps) in
 	if len(args) > 0 {
 		switch strings.ToLower(strings.TrimSpace(args[0])) {
 		case "convert":
-			return runConvert(args[1:], stdout, stderr, deps.version)
+			return runConvert(args[1:], stdout, stderr, deps)
 		case "components":
 			return runComponents(args[1:], stdout, stderr, deps)
 		case "install":
@@ -54,10 +55,10 @@ func run(args []string, stdout io.Writer, stderr io.Writer, deps runtimeDeps) in
 		}
 	}
 
-	return runConvert(args, stdout, stderr, deps.version)
+	return runConvert(args, stdout, stderr, deps)
 }
 
-func runConvert(args []string, stdout io.Writer, stderr io.Writer, version string) int {
+func runConvert(args []string, stdout io.Writer, stderr io.Writer, deps runtimeDeps) int {
 	flags := flag.NewFlagSet("convert", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 
@@ -98,7 +99,7 @@ func runConvert(args []string, stdout io.Writer, stderr io.Writer, version strin
 	}
 
 	if showVersion {
-		fmt.Fprintln(stdout, version)
+		fmt.Fprintln(stdout, deps.version)
 		return 0
 	}
 
@@ -139,7 +140,11 @@ func runConvert(args []string, stdout io.Writer, stderr io.Writer, version strin
 			fmt.Fprintf(stderr, "invalid timeout %q: duration must be positive\n", timeout)
 			return 1
 		}
-		ctx, cancel = context.WithTimeout(ctx, duration)
+		withTimeout := deps.timeoutContext
+		if withTimeout == nil {
+			withTimeout = context.WithTimeout
+		}
+		ctx, cancel = withTimeout(ctx, duration)
 		defer cancel()
 	}
 

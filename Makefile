@@ -3,7 +3,7 @@ BINARY ?= inkbite
 LDFLAGS := -X main.version=$(VERSION)
 GOFILES := $(shell git ls-files '*.go')
 
-.PHONY: build test vet fmt ci dist clean
+.PHONY: build test acceptance vet fmt fmt-check quality ci dist clean
 
 build:
 	mkdir -p bin
@@ -12,16 +12,25 @@ build:
 test:
 	go test ./...
 
+acceptance:
+	go test ./test/acceptance
+
 vet:
 	go vet ./...
 
 fmt:
 	gofmt -w $(GOFILES)
 
-ci: test vet build
+fmt-check:
+	@test -z "$$(gofmt -l $(GOFILES))"
+
+quality:
+	./scripts/verify-ingestion-contract.sh quality
+
+ci: quality
 
 dist:
-	./scripts/dist.sh "$(VERSION)" "$(BINARY)"
+	./scripts/verify-ingestion-contract.sh package "$(VERSION)" "$(BINARY)" "$(DIST_DIR)"
 
 clean:
 	rm -rf bin dist coverage.out

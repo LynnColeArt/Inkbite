@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -20,6 +21,10 @@ func TestEPUBConversionFixture(t *testing.T) {
 	}, inkbite.ConvertOptions{})
 	if err != nil {
 		t.Fatalf("Convert() error = %v", err)
+	}
+	want := "**Title:** Sample Book\n**Authors:** Test Author\n**Language:** en\n\n# Chapter 1\n\nHello **EPUB**"
+	if result.Markdown != want {
+		t.Fatalf("Convert() markdown = %q, want exact fixture %q", result.Markdown, want)
 	}
 
 	for _, fragment := range []string{
@@ -53,6 +58,37 @@ func TestEPUBRejectsMissingContainerXML(t *testing.T) {
 	if !errors.As(err, &unsupported) {
 		t.Fatalf("expected unsupported format error, got %v", err)
 	}
+}
+
+func TestEPUBConverterSurfaceAndTypedSeekFailure(t *testing.T) {
+	t.Parallel()
+
+	converter := New()
+	if converter.Priority() != priority {
+		t.Fatalf("Priority() = %v, want %v", converter.Priority(), priority)
+	}
+	for _, info := range []inkbite.StreamInfo{
+		{Extension: ".epub"},
+		{MIMEType: "application/epub+zip"},
+	} {
+		if !converter.Accepts(context.Background(), bytes.NewReader(nil), info, inkbite.ConvertOptions{}) {
+			t.Fatalf("Accepts(%#v) = false", info)
+		}
+	}
+	if converter.Accepts(context.Background(), bytes.NewReader(nil), inkbite.StreamInfo{Extension: ".txt"}, inkbite.ConvertOptions{}) {
+		t.Fatal("Accepts(.txt) = true")
+	}
+	_, err := converter.Convert(context.Background(), failingEPUBReadSeeker{}, inkbite.StreamInfo{Extension: ".epub"}, inkbite.ConvertOptions{})
+	if !errors.Is(err, inkbite.ErrIntegrityFailure) {
+		t.Fatalf("Convert() seek error = %v, want integrity failure", err)
+	}
+}
+
+type failingEPUBReadSeeker struct{}
+
+func (failingEPUBReadSeeker) Read([]byte) (int, error) { return 0, io.EOF }
+func (failingEPUBReadSeeker) Seek(int64, int) (int64, error) {
+	return 0, errors.New("seek failed")
 }
 
 func writeZipFile(t *testing.T, zw *zip.Writer, name string, content string) {

@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/LynnColeArt/Inkbite/contracts/inkbite.ingestion.v1.schema.json",
+  "title": "Inkbite Ingestion Envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "source", "primary", "artifacts", "provenance", "warnings"],
+  "properties": {
+    "contract_version": {"const": "inkbite.ingestion/v1"},
+    "source": {"$ref": "#/$defs/source"},
+    "primary": {"$ref": "#/$defs/artifact"},
+    "artifacts": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {"$ref": "#/$defs/artifact"}
+    },
+    "provenance": {"$ref": "#/$defs/provenance"},
+    "warnings": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/warning"}
+    }
+  },
+  "$defs": {
+    "identity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bytes", "identity", "byte_length", "source_kind"],
+      "properties": {
+        "bytes": {"type": "string", "contentEncoding": "base64"},
+        "identity": {"$ref": "#/$defs/identity"},
+        "byte_length": {"type": "integer", "minimum": 0, "maximum": 33554432},
+        "media_type": {"type": "string"},
+        "source_kind": {"type": "string", "enum": ["bytes", "reader", "file", "data_uri", "remote"]},
+        "safe_name": {"type": "string"}
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "from_id", "to_id"],
+      "properties": {
+        "kind": {"type": "string", "enum": ["derived_from", "embedded_in", "referenced_by"]},
+        "from_id": {"type": "string"},
+        "to_id": {"type": "string"},
+        "occurrence": {"type": "string"}
+      }
+    },
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value", "origin"],
+      "properties": {
+        "kind": {"type": "string"},
+        "value": {"type": "string"},
+        "origin": {"type": "string", "enum": ["caller", "source", "sniff", "converter"]}
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_id", "role", "bytes", "identity", "byte_length", "media_type", "relations", "attributes"],
+      "properties": {
+        "artifact_id": {"type": "string", "pattern": "^artifact-[0-9]{6}$"},
+        "role": {"type": "string"},
+        "bytes": {"type": "string", "contentEncoding": "base64"},
+        "identity": {"$ref": "#/$defs/identity"},
+        "byte_length": {"type": "integer", "minimum": 0, "maximum": 33554432},
+        "media_type": {"type": "string", "minLength": 1},
+        "safe_name": {"type": "string"},
+        "relations": {"type": "array", "items": {"$ref": "#/$defs/relation"}},
+        "attributes": {"type": "array", "items": {"$ref": "#/$defs/fact"}}
+      }
+    },
+    "attempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["converter", "outcome"],
+      "properties": {
+        "converter": {"type": "string"},
+        "outcome": {"type": "string", "enum": ["unsupported", "failed", "selected"]},
+        "category": {"type": "string"}
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_source_bytes", "max_primary_bytes", "max_artifacts", "max_artifact_bytes", "max_total_artifact_bytes", "max_container_entries", "max_container_entry_bytes", "max_expanded_bytes", "max_container_depth", "max_expansion_ratio", "remote_enabled"],
+      "properties": {
+        "max_source_bytes": {"type": "integer", "minimum": 1},
+        "max_primary_bytes": {"type": "integer", "minimum": 1},
+        "max_artifacts": {"type": "integer", "minimum": 0},
+        "max_artifact_bytes": {"type": "integer", "minimum": 1},
+        "max_total_artifact_bytes": {"type": "integer", "minimum": 1},
+        "max_container_entries": {"type": "integer", "minimum": 1},
+        "max_container_entry_bytes": {"type": "integer", "minimum": 1},
+        "max_expanded_bytes": {"type": "integer", "minimum": 1},
+        "max_container_depth": {"type": "integer", "minimum": 0},
+        "max_expansion_ratio": {"type": "number", "minimum": 1},
+        "remote_enabled": {"type": "boolean"},
+        "component": {"type": "string"}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "source_identity", "converter", "stream_facts", "policy", "output_identities", "attempts"],
+      "properties": {
+        "contract_version": {"const": "inkbite.ingestion/v1"},
+        "source_identity": {"$ref": "#/$defs/identity"},
+        "converter": {"type": "string", "minLength": 1},
+        "backend": {"type": "string"},
+        "component": {"type": "string"},
+        "stream_facts": {"type": "array", "items": {"$ref": "#/$defs/fact"}},
+        "policy": {"$ref": "#/$defs/policy"},
+        "output_identities": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/identity"}},
+        "attempts": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/attempt"}}
+      }
+    },
+    "warning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["category"],
+      "properties": {
+        "category": {"type": "string", "minLength": 1},
+        "converter": {"type": "string"},
+        "location": {"type": "string"},
+        "detail": {"type": "string"}
+      }
+    }
+  }
+}
