@@ -105,3 +105,4 @@ Handoff includes zero-call evidence, denied-address matrix, redirect/DNS pin pro
 - 2026-08-22T10:36:09Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Assigned agent via action command
 - 2026-08-22T10:58:46Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Ready for review: red e62f77c; green dc61faf/1122927/f5c8a49; exact five-file scope; Go 1.26.6 focused 20x/race 5x and full normal+race/vet/build/mod/vuln pass; coverage root 86.3% internal/ingestion 89.5%; disabled zero-call, denied-address, redirect/DNS pin, exact representation, cancellation/redaction, concurrency, and guard-mutation evidence green.
 - 2026-08-22T10:59:51Z – codex:gpt-5.6-sol:reviewer-renata:reviewer – shell_pid=2667806 – Started review via action command
+- 2026-08-22T11:11:09Z – user – shell_pid=2667806 – Moved to planned
