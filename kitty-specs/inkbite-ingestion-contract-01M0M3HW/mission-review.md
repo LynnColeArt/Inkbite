@@ -5,7 +5,7 @@
 **Mission**: `inkbite-ingestion-contract-01M0M3HW` — Inkbite Ingestion Contract
 **Baseline commit**: `b32e63144bb3b4792ce52b8551a95fb8d3bb8f65`
 **Merged product commit**: `7d0c3ad`
-**Reviewed product HEAD after remote portability correction**: `a0e2e4f`
+**Reviewed product HEAD after remote portability correction**: `c84b08f`
 **WPs reviewed**: WP01–WP09
 
 ## Gate Results
@@ -41,17 +41,21 @@
   external `zip` command, MSYS rewriting of already-native paths, a
   newline-sensitive mutation, `tar -f` treating `C:/...` as a remote host, and
   extracted-filesystem execute-bit checks that cannot represent POSIX archive
-  modes on Windows.
+  modes on Windows. Once retained acceptance cleared, the full Windows suite
+  also exposed non-canonical `file:C:/...` test fixtures and a CLI cancellation
+  snapshot coupled to 1 ns wall-clock scheduling.
   Red `8418752` retained the platform contract; green `4a0b63d`, `606f9da`,
   `3eb586a`, `ec325b8`, and `a0e2e4f` moved deterministic tar.gz/ZIP creation,
   extraction, mutation, and mode inspection to Go standard-library code,
   removed GNU-only `find` predicates, invoke the release script through Git
   Bash, and normalize the narrow Bash-to-Go and tar path boundaries. The final
   verifier reads `0644`/`0755` directly from tar and ZIP headers rather than
-  inferring them from the extracted host filesystem. Mutation anti-vacuity,
-  executable-mode rejection, focused package mutations, Darwin and Windows
-  helper builds, full acceptance, and this complete quality command then passed
-  on the clean corrected tree.
+  inferring them from the extracted host filesystem. Tests now construct
+  canonical `file:///C:/...` URIs and inject an already-expired deadline for the
+  CLI snapshot without changing normal timeout behavior. Mutation anti-vacuity,
+  executable-mode rejection, focused package mutations, 100 deterministic URI
+  and timeout repetitions, Darwin and Windows helper builds, full acceptance,
+  and this complete quality command then passed on the clean corrected tree.
 
 ### Gate 3 — Host boundary / cross-repository E2E
 
