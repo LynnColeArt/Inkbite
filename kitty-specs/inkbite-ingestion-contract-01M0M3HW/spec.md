@@ -76,7 +76,7 @@ As an existing Inkbite user, I want the richer contract to preserve the current 
 
 1. **Given** a caller that only reads `Result.Markdown`, `Result.Title`, or `TextContent`, **when** it upgrades, **then** it continues to compile and observe the same normalized text semantics.
 2. **Given** the default CLI invocation, **when** conversion succeeds, **then** stdout remains normalized Markdown and no binary artifact is emitted implicitly.
-3. **Given** a custom converter implementing the existing converter contract, **when** it returns a legacy-shaped result, **then** the engine supplies source identity and engine-owned provenance without requiring that converter to re-read the source.
+3. **Given** a custom converter implementing the existing converter contract, **when** it returns a legacy-shaped result, **then** an additive detailed-ingestion operation supplies source identity and engine-owned provenance without requiring that converter to re-read the source.
 
 ### Edge Cases
 
@@ -97,11 +97,11 @@ As an existing Inkbite user, I want the richer contract to preserve the current 
 
 | ID | Title | User Story | Priority | Status |
 |----|-------|------------|----------|--------|
-| FR-001 | Canonical ingestion envelope | As a host, I want every successful conversion represented by one versioned envelope containing normalized content, source identity, artifacts, and provenance. | High | Open |
+| FR-001 | Canonical ingestion envelope | As a host, I want an additive detailed-ingestion operation to return one versioned envelope containing normalized content, source identity, artifacts, and provenance without changing the existing `Result` shape. | High | Open |
 | FR-002 | Exact source artifact | As a host, I want the exact acquired source bytes, byte length, media information, and a SHA-256 identity returned so I can retain and verify the original input. | High | Open |
 | FR-003 | Primary normalized artifact | As a host, I want normalized Markdown represented as a primary artifact with canonical UTF-8 bytes, media type, role, length, and SHA-256 identity. | High | Open |
 | FR-004 | Derived artifact inventory | As a host, I want each extracted derivative returned with bytes, stable role, media type, safe logical name, source relationship, length, and SHA-256 identity. | High | Open |
-| FR-005 | Deterministic provenance | As an auditor, I want provenance to identify the contract version, winning converter, selected backend or component, canonical stream metadata, effective policy, source identity, and output identities without nondeterministic fields. | High | Open |
+| FR-005 | Deterministic provenance | As an auditor, I want provenance to identify the contract version, winning converter, selected backend or component, canonical stream metadata and whether each value came from the source, caller, or sniffing, effective policy, source identity, and output identities without nondeterministic fields. | High | Open |
 | FR-006 | Stable ordering and references | As a host, I want artifacts and their references ordered and resolved deterministically so serialization and digest comparison are reproducible. | High | Open |
 | FR-007 | Uniform source limits | As an operator, I want a single explicit policy to bound acquired bytes for paths, readers, byte slices, data URIs, and remote responses before converter dispatch. | High | Open |
 | FR-008 | Container limits | As an operator, I want policy to bound recursion depth, entry count, per-entry bytes, total expanded bytes, and expansion ratio for ZIP and ZIP-based document containers. | High | Open |
@@ -111,6 +111,9 @@ As an existing Inkbite user, I want the richer contract to preserve the current 
 | FR-012 | Backward-compatible library use | As an existing caller, I want the current `Result` text fields, converter interface, and conversion entry points to remain source compatible. | High | Open |
 | FR-013 | Backward-compatible CLI use | As a CLI user, I want the default command to retain Markdown stdout and existing flags, with no implicit binary or metadata output. | Medium | Open |
 | FR-014 | Public verification | As a host, I want a public verification operation that recomputes source and artifact identities and rejects malformed, missing, duplicate, or mismatched envelope data without invoking conversion or external services. | High | Open |
+| FR-015 | Bounded outputs | As an operator, I want policy to bound primary output bytes, artifact count, per-artifact bytes, and aggregate artifact bytes before a successful envelope is returned. | High | Open |
+| FR-016 | Visible degradation | As a host, I want skipped unsupported members, failed optional extraction, and intentional deduplication represented by stable warnings or typed failure rather than silently omitted from an authoritative result. | High | Open |
+| FR-017 | Concurrent conversion contract | As a host, I want one fully configured engine usable by concurrent conversions without request data, artifacts, policy, or provenance crossing between calls. | Medium | Open |
 
 ### Non-Functional Requirements
 
@@ -128,6 +131,7 @@ As an existing Inkbite user, I want the richer contract to preserve the current 
 | NFR-010 | Changed-code coverage | Changed production statements must have at least 80.0% unrounded fixed-base coverage, with security and verification branches covered by mutation or deletion evidence. | Quality | High | Open |
 | NFR-011 | Sensitive metadata hygiene | Errors and public metadata must contain zero raw data-URI payloads, URL credentials, authorization headers, source bytes, component grants, or backend stack traces in sentinel tests. | Privacy | High | Open |
 | NFR-012 | Portable bytes | Byte-bearing fixtures and artifact results must remain identical across Linux, macOS, and Windows checkouts and test runs. | Portability | Medium | Open |
+| NFR-013 | Bounded results | Default policy must cap primary normalized output at 32 MiB, artifact count at 256, each derivative at 8 MiB, and aggregate derivative bytes at 32 MiB; each boundary must pass at the limit and fail at limit plus one. | Security | High | Open |
 
 ### Constraints
 
@@ -144,7 +148,7 @@ As an existing Inkbite user, I want the richer contract to preserve the current 
 
 ### Key Entities
 
-- **Ingestion Envelope**: the versioned successful outcome that binds one exact source to normalized content, zero or more derived artifacts, and conversion provenance.
+- **Ingestion Envelope**: the additive, versioned successful outcome that binds one exact source to normalized content, zero or more derived artifacts, and conversion provenance while leaving the legacy result contract intact.
 - **Source Artifact**: an immutable copy of the acquired input with byte length, media information, safe origin metadata, and content identity.
 - **Derived Artifact**: independently retainable bytes produced from the source, labeled by role, media type, safe logical name, deterministic relationship, length, and identity.
 - **Conversion Provenance**: deterministic evidence describing which contract, converter, backend or explicitly selected component, stream metadata, and policy produced the artifacts.
@@ -156,6 +160,7 @@ As an existing Inkbite user, I want the richer contract to preserve the current 
 - Nano Kitty will own durable storage, promotion, recovery, and cleanup; Inkbite's responsibility ends after returning a verified envelope.
 - Source bytes are already buffered by the current engine, so exposing an immutable source artifact does not authorize unbounded acquisition.
 - The first rich derivative proof uses an embedded PDF image because that capability already exists; the contract is format-neutral.
+- Registration may remain a configuration-time operation that is not concurrent with conversion; after configuration, conversions must be safe to run concurrently.
 - Existing converter priorities and normalized Markdown are preserved unless a separately reviewed correctness defect requires a change.
 - Remote access remains opt-in. This mission hardens its policy but does not create a crawler, browser, URL discovery system, or authenticated connector.
 - Optional inference/provider integration, image captioning, OCR activation, and Nano Kitty component orchestration are later missions built on this contract.
@@ -167,9 +172,9 @@ As an existing Inkbite user, I want the richer contract to preserve the current 
 
 - **SC-001**: A Nano-Kitty-like consumer can convert, independently verify, persist, discard all converter state, and later reload the exact source, Markdown, and PDF image derivative using only the returned envelope.
 - **SC-002**: The reproducibility matrix completes 100 identical conversions for representative text, PDF-with-image, office-document, and nested-archive fixtures with byte-identical canonical results.
-- **SC-003**: Every source-kind and container-limit boundary has passing at-limit and failing over-limit tests, and no over-limit case invokes a converter or returns a partial envelope.
+- **SC-003**: Every source-kind, output, artifact, and container-limit boundary has passing at-limit and failing over-limit tests, and no over-limit case invokes disallowed downstream work or returns a partial envelope.
 - **SC-004**: Remote-policy tests prove zero calls while disabled and deny all enumerated private/address-class and redirect bypass cases while preserving an explicitly authorized public fixture path.
 - **SC-005**: One-byte mutation, missing-artifact, duplicate-identity, invalid-reference, and cross-envelope substitution tests all fail public verification.
 - **SC-006**: Existing API, custom-converter, CLI, and format suites remain green without callers adopting the new fields.
-- **SC-007**: Full normal, race, vulnerability, module, license, formatting, static-analysis, deterministic-generation, portable-checkout, and fixed-base changed-coverage gates pass on final bytes.
+- **SC-007**: Release qualification reports no functional regression, concurrency defect, known reachable vulnerability, licensing violation, portability drift, or quality-threshold failure on the final deliverable.
 - **SC-008**: The mission ships public contract documentation and an adopted-components record sufficient for a host integrator to implement retention without reading Inkbite internals.
