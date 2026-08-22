@@ -3,13 +3,19 @@ package pdfconv
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
+	"image"
 	"io"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/LynnColeArt/Inkbite"
 	"github.com/dslipak/pdf"
+	"github.com/pdfcpu/pdfcpu/pkg/api"
+	pdfcpu "github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
 
 const priority = 14
@@ -92,8 +98,23 @@ func (c *Converter) Convert(
 		return inkbite.Result{}, err
 	}
 
+	markdown := layoutToMarkdown(text)
+	if opts.KeepDataURIs {
+		imageMarkdown, err := extractPDFImagesMarkdown(ctx, data)
+		if err != nil {
+			return inkbite.Result{}, fmt.Errorf("pdf: image extraction: %w", err)
+		}
+		if imageMarkdown != "" {
+			markdown = strings.TrimSpace(markdown)
+			if markdown != "" {
+				markdown += "\n\n"
+			}
+			markdown += imageMarkdown
+		}
+	}
+
 	return inkbite.Result{
-		Markdown: layoutToMarkdown(text),
+		Markdown: markdown,
 	}, nil
 }
 
@@ -152,6 +173,278 @@ func (pureGoExtractor) Extract(ctx context.Context, data []byte) (string, error)
 	}
 
 	return out.String(), nil
+}
+
+type extractedImage struct {
+	Page       int
+	Name       string
+	MediaType  string
+	FileType   string
+	Width      int
+	Height     int
+	Bpc        int
+	ColorSpace string
+	Filter     string
+	ImageMask  bool
+	Data       []byte
+}
+
+func extractPDFImagesMarkdown(ctx context.Context, data []byte) (string, error) {
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+	}
+
+	images, err := extractPDFImages(ctx, data)
+	if err != nil {
+		return "", err
+	}
+	if len(images) == 0 {
+		return "", nil
+	}
+
+	sort.SliceStable(images, func(i, j int) bool {
+		if images[i].Page != images[j].Page {
+			return images[i].Page < images[j].Page
+		}
+		return images[i].Name < images[j].Name
+	})
+
+	var out strings.Builder
+	out.WriteString("## PDF Images\n\n")
+	for idx, image := range images {
+		if idx > 0 {
+			out.WriteString("\n\n")
+		}
+		alt := fmt.Sprintf(
+			"PDF image page %d %s %s %s %s",
+			image.Page,
+			image.Name,
+			imageDimensions(image),
+			image.ColorSpace,
+			imageBitsPerComponent(image),
+		)
+		fmt.Fprintf(&out, "![%s](data:%s;base64,%s)\n\n", alt, image.MediaType, base64.StdEncoding.EncodeToString(image.Data))
+		out.WriteString("| Page | Name | Type | Dimensions | Color Space | Bits/Component | Filters | Bytes |\n")
+		out.WriteString("| --- | --- | --- | --- | --- | --- | --- | --- |\n")
+		fmt.Fprintf(
+			&out,
+			"| %d | %s | %s | %dx%d | %s | %d | %s | %d |",
+			image.Page,
+			escapeCell(image.Name),
+			escapeCell(image.FileType),
+			image.Width,
+			image.Height,
+			escapeCell(image.ColorSpace),
+			image.Bpc,
+			escapeCell(image.Filter),
+			len(image.Data),
+		)
+	}
+	return out.String(), nil
+}
+
+func extractPDFImages(ctx context.Context, data []byte) ([]extractedImage, error) {
+	if err := checkContext(ctx); err != nil {
+		return nil, err
+	}
+
+	conf := model.NewDefaultConfiguration()
+	conf.ValidationMode = model.ValidationRelaxed
+	conf.Cmd = model.EXTRACTIMAGES
+
+	pdfCtx, err := api.ReadValidateAndOptimize(bytes.NewReader(data), conf)
+	if err != nil {
+		return nil, err
+	}
+
+	patchImageMaskColorSpaces(pdfCtx)
+
+	pages, err := api.PagesForPageSelection(pdfCtx.PageCount, nil, true, true)
+	if err != nil {
+		return nil, err
+	}
+	var pageNrs []int
+	for page, selected := range pages {
+		if selected {
+			pageNrs = append(pageNrs, page)
+		}
+	}
+	sort.Ints(pageNrs)
+
+	var images []extractedImage
+	for _, page := range pageNrs {
+		if err := checkContext(ctx); err != nil {
+			return nil, err
+		}
+		pageImages, err := pdfcpu.ExtractPageImages(pdfCtx, page, false)
+		if err != nil {
+			return nil, err
+		}
+		var objNrs []int
+		for objNr := range pageImages {
+			objNrs = append(objNrs, objNr)
+		}
+		sort.Ints(objNrs)
+		for _, objNr := range objNrs {
+			image := pageImages[objNr]
+			extracted, err := extractImagePayload(ctx, pdfCtx, image)
+			if err != nil {
+				return nil, err
+			}
+			if extracted != nil {
+				images = append(images, *extracted)
+			}
+		}
+	}
+	return images, nil
+}
+
+func checkContext(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
+}
+
+func patchImageMaskColorSpaces(ctx *model.Context) {
+	for _, imageObject := range ctx.Optimize.ImageObjects {
+		if imageObject == nil || imageObject.ImageDict == nil {
+			continue
+		}
+		imageMask := imageObject.ImageDict.BooleanEntry("ImageMask")
+		if imageMask == nil || !*imageMask {
+			continue
+		}
+		if _, ok := imageObject.ImageDict.Find("ColorSpace"); !ok {
+			imageObject.ImageDict.InsertName("ColorSpace", model.DeviceGrayCS)
+		}
+		if _, ok := imageObject.ImageDict.Find("BitsPerComponent"); !ok {
+			imageObject.ImageDict.InsertInt("BitsPerComponent", 1)
+		}
+	}
+}
+
+func extractImagePayload(ctx context.Context, pdfCtx *model.Context, image model.Image) (*extractedImage, error) {
+	if image.Reader == nil {
+		return nil, nil
+	}
+	if err := checkContext(ctx); err != nil {
+		return nil, err
+	}
+	mediaType := mediaTypeForImage(image.FileType)
+	if mediaType == "" {
+		return nil, fmt.Errorf("unsupported image file type %q for page %d image %q", image.FileType, image.PageNr, image.Name)
+	}
+	payload, err := io.ReadAll(image.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("read page %d image %q: %w", image.PageNr, image.Name, err)
+	}
+	if err := checkContext(ctx); err != nil {
+		return nil, err
+	}
+	if len(payload) == 0 {
+		return nil, fmt.Errorf("empty image payload for page %d image %q", image.PageNr, image.Name)
+	}
+
+	width, height, bpc, colorSpace, filterName, imageMask := imageMetadata(pdfCtx, image)
+	if width == 0 || height == 0 {
+		config, _, err := imageConfig(payload)
+		if err == nil {
+			width = config.Width
+			height = config.Height
+		}
+	}
+
+	return &extractedImage{
+		Page:       image.PageNr,
+		Name:       image.Name,
+		MediaType:  mediaType,
+		FileType:   image.FileType,
+		Width:      width,
+		Height:     height,
+		Bpc:        bpc,
+		ColorSpace: colorSpace,
+		Filter:     filterName,
+		ImageMask:  imageMask,
+		Data:       payload,
+	}, nil
+}
+
+func imageMetadata(ctx *model.Context, image model.Image) (width, height, bpc int, colorSpace, filterName string, imageMask bool) {
+	imageObject := ctx.Optimize.ImageObjects[image.ObjNr]
+	if imageObject == nil || imageObject.ImageDict == nil {
+		return image.Width, image.Height, image.Bpc, image.Cs, image.Filter, image.IsImgMask
+	}
+
+	sd := imageObject.ImageDict
+	if value := sd.IntEntry("Width"); value != nil {
+		width = *value
+	}
+	if value := sd.IntEntry("Height"); value != nil {
+		height = *value
+	}
+	if value := sd.IntEntry("BitsPerComponent"); value != nil {
+		bpc = *value
+	}
+	if value := sd.NameEntry("ColorSpace"); value != nil {
+		colorSpace = string(*value)
+	}
+	if value := sd.BooleanEntry("ImageMask"); value != nil && *value {
+		imageMask = true
+		if bpc == 0 {
+			bpc = 1
+		}
+		if colorSpace == "" {
+			colorSpace = model.DeviceGrayCS
+		}
+		colorSpace += " image mask"
+	}
+	if sd.FilterPipeline != nil {
+		var filters []string
+		for _, filter := range sd.FilterPipeline {
+			filters = append(filters, filter.Name)
+		}
+		filterName = strings.Join(filters, ",")
+	}
+
+	return width, height, bpc, colorSpace, filterName, imageMask
+}
+
+func imageConfig(data []byte) (image.Config, string, error) {
+	return image.DecodeConfig(bytes.NewReader(data))
+}
+
+func imageDimensions(image extractedImage) string {
+	if image.Width <= 0 || image.Height <= 0 {
+		return "unknown dimensions"
+	}
+	return fmt.Sprintf("%dx%d", image.Width, image.Height)
+}
+
+func imageBitsPerComponent(image extractedImage) string {
+	if image.Bpc <= 0 {
+		return "unknown bpc"
+	}
+	return fmt.Sprintf("%d bpc", image.Bpc)
+}
+
+func mediaTypeForImage(fileType string) string {
+	switch strings.ToLower(strings.TrimPrefix(fileType, ".")) {
+	case "jpg", "jpeg":
+		return "image/jpeg"
+	case "png":
+		return "image/png"
+	case "tif", "tiff":
+		return "image/tiff"
+	case "webp":
+		return "image/webp"
+	default:
+		return ""
+	}
 }
 
 func layoutToMarkdown(input string) string {
