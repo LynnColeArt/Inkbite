@@ -30,7 +30,7 @@ type archiveEntry struct {
 
 func main() {
 	if len(os.Args) < 2 {
-		fatalf("usage: package-source create ROOT ARCHIVE_NAME TAR_GZ ZIP | extract-zip ZIP DESTINATION")
+		fatalf("usage: package-source create ROOT ARCHIVE_NAME TAR_GZ ZIP | extract-zip ZIP DESTINATION | verify-modes FORMAT ARCHIVE")
 	}
 	switch os.Args[1] {
 	case "create":
@@ -54,9 +54,83 @@ func main() {
 		if err := extractZIP(os.Args[2], os.Args[3]); err != nil {
 			fatalf("extract source zip: %v", err)
 		}
+	case "verify-modes":
+		if len(os.Args) != 4 {
+			fatalf("usage: package-source verify-modes FORMAT ARCHIVE")
+		}
+		if err := verifyArchiveModes(os.Args[2], os.Args[3]); err != nil {
+			fatalf("verify source archive modes: %v", err)
+		}
 	default:
 		fatalf("unknown package-source command %q", os.Args[1])
 	}
+}
+
+func verifyArchiveModes(format, archivePath string) error {
+	switch format {
+	case "tar":
+		return verifyTarGzipModes(archivePath)
+	case "zip":
+		return verifyZIPModes(archivePath)
+	default:
+		return fmt.Errorf("unsupported archive format %q", format)
+	}
+}
+
+func verifyTarGzipModes(archivePath string) (resultErr error) {
+	input, err := os.Open(archivePath)
+	if err != nil {
+		return err
+	}
+	defer closeWithError(input, &resultErr)
+	compressed, err := gzip.NewReader(input)
+	if err != nil {
+		return err
+	}
+	defer closeWithError(compressed, &resultErr)
+	reader := tar.NewReader(compressed)
+	for {
+		header, err := reader.Next()
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if header.Mode&0o777 != 0o755 {
+				return fmt.Errorf("directory %q has mode %#o, want 0755", header.Name, header.Mode&0o777)
+			}
+		case tar.TypeReg, tar.TypeRegA:
+			if header.Mode&0o777 != 0o644 {
+				return fmt.Errorf("file %q has mode %#o, want 0644", header.Name, header.Mode&0o777)
+			}
+		default:
+			return fmt.Errorf("entry %q has unsupported type %d", header.Name, header.Typeflag)
+		}
+	}
+}
+
+func verifyZIPModes(archivePath string) error {
+	archive, err := zip.OpenReader(archivePath)
+	if err != nil {
+		return err
+	}
+	defer archive.Close()
+	for _, file := range archive.File {
+		mode := file.Mode()
+		if file.FileInfo().IsDir() || strings.HasSuffix(file.Name, "/") {
+			if !mode.IsDir() || mode.Perm() != 0o755 {
+				return fmt.Errorf("directory %q has mode %s, want 0755", file.Name, mode)
+			}
+			continue
+		}
+		if !mode.IsRegular() || mode.Perm() != 0o644 {
+			return fmt.Errorf("file %q has mode %s, want 0644", file.Name, mode)
+		}
+	}
+	return nil
 }
 
 func collectEntries(root, archiveName string) ([]archiveEntry, error) {

@@ -209,13 +209,7 @@ inspect_source_tree() {
     echo "source archive contains a symlink" >&2
     return 1
   fi
-  while IFS= read -r relative; do
-    if [[ -x "$relative" ]]; then
-      echo "source archive contains an executable file mode" >&2
-      return 1
-    fi
-  done < <(find "$tree" -type f -print)
-  while IFS= read -r relative; do
+	while IFS= read -r relative; do
     relative="${relative#./}"
     case "$relative" in
       vendor/*|*/vendor/*|pkg/mod/*|*/pkg/mod/*|third_party/*|*/third_party/*|*.exe|*.dll|*.so|*.dylib|*.a|*.o|*.obj)
@@ -245,8 +239,10 @@ inspect_source_archive() (
   expected="$temp_dir/expected"
   extracted="$temp_dir/extracted"
   mkdir -p "$expected" "$extracted"
-  git archive --format=tar HEAD | tar -x -C "$expected"
-  case "$format" in
+	git archive --format=tar HEAD | tar -x -C "$expected"
+	MSYS2_ARG_CONV_EXCL='*' GOTOOLCHAIN="$PINNED_TOOLCHAIN" go run ./scripts/package-source.go verify-modes \
+		"$format" "$(native_path "$archive")"
+	case "$format" in
     tar) tar -xzf "$(shell_path "$archive")" -C "$extracted" ;;
     zip)
       MSYS2_ARG_CONV_EXCL='*' GOTOOLCHAIN="$PINNED_TOOLCHAIN" go run ./scripts/package-source.go extract-zip \
