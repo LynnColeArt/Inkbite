@@ -172,11 +172,11 @@ All planning artifacts were generated on `feat/inkbite-ingestion-contract`. Spec
 **Priority**: P0
 **Dependencies**: WP02, WP04
 
-- [ ] T020 Route generic ZIP through the shared request ledger (WP05)
-- [ ] T021 Preserve one ledger through nested ZIP conversion (WP05)
-- [ ] T022 Make unsupported/failed ZIP members visible (WP05)
-- [ ] T023 Route EPUB package/member reads through the shared ledger (WP05)
-- [ ] T024 Prove hostile container boundaries and legacy fidelity (WP05)
+- [x] T020 Route generic ZIP through the shared request ledger (WP05)
+- [x] T021 Preserve one ledger through nested ZIP conversion (WP05)
+- [x] T022 Make unsupported/failed ZIP members visible (WP05)
+- [x] T023 Route EPUB package/member reads through the shared ledger (WP05)
+- [x] T024 Prove hostile container boundaries and legacy fidelity (WP05)
 
 ## WP06 — OOXML and XLSX Accounting
 
