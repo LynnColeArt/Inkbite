@@ -333,6 +333,19 @@ caller_frame
 	}
 }
 
+func TestSourcePackagingDoesNotRequireGNUTarCreationFlags(t *testing.T) {
+	scriptPath := filepath.Join("..", "..", "scripts", "verify-ingestion-contract.sh")
+	script, err := os.ReadFile(scriptPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, flag := range []string{"--sort=name", "--owner=", "--group=", "--numeric-owner", "--mtime=", "--mode="} {
+		if bytes.Contains(script, []byte(flag)) {
+			t.Errorf("source packaging depends on GNU tar flag %q", flag)
+		}
+	}
+}
+
 func TestQualityCleanlinessAllowsOnlyUnchangedPreexistingReviewLock(t *testing.T) {
 	scriptPath := filepath.Join("..", "..", "scripts", "verify-ingestion-contract.sh")
 	script, err := os.ReadFile(scriptPath)
