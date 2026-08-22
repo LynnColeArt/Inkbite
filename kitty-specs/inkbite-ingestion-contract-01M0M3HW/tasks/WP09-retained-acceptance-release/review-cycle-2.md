@@ -7,6 +7,10 @@ reviewed_at: '2026-08-22T15:37:35Z'
 reviewer_agent: unknown
 verdict: rejected
 wp_id: WP09
+review_artifact_override_at: "2026-08-22T16:20:29Z"
+review_artifact_override_actor: "operator"
+review_artifact_override_wp_id: "WP09"
+review_artifact_override_reason: "Cycle-3 governed approval override for two preserved pre-existing conditions: (1) canonical review-cycle-1.md release-lock rejection and review-cycle-2.md linked-binary/GPL-license rejection are superseded by the verified source-only correction at 2ee5bfc under arbiter-license-ruling.md and amended C-001/SC-007/WP09 scope; both artifacts remain preserved; and (2) --force acknowledges only the pre-existing same-mission committed kitty-specs lane ancestry required by amendment/coordination history, without altering or cleaning those files. Red 011c0d9 was reproduced; exact eight-file scope, tracked-source manifest, deterministic tar/zip/checksums, canonical legacy/CI/tag surfaces, exact GPL warning, all required mutations, frozen surfaces, and the mandatory nine-command gate all passed on review HEAD 5db4ac5d19ba4522109ee5712eb128d84de193ff."
 ---
 
 ---
