@@ -16,3 +16,17 @@ kitty-specs/**/canary-evidence/** linguist-generated=true
 .kittify/workspaces/** -diff
 .kittify/migrations/** linguist-generated=true
 .kittify/migrations/** -diff
+
+# Document and media fixtures are byte-oriented. Text conversion corrupts
+# archive containers and offset-based formats such as PDF on Windows.
+*.pdf binary
+*.docx binary
+*.pptx binary
+*.xlsx binary
+*.xls binary
+*.epub binary
+*.zip binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
