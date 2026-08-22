@@ -1,0 +1,534 @@
+{
+  "mission_slug": "inkbite-ingestion-contract-01M0M3HW",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "The additive v1 ingestion envelope returns normalized content, exact source, derivatives, and provenance without changing Result.",
+      "proof_type": "automated_test",
+      "evidence": "test/contract/ingestion_contract_test.go and test/acceptance/retained_ingestion_test.go pass through exported Engine.Ingest and VerifyEnvelope.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP01/WP04/WP09"
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "The envelope owns exact source bytes, length, media facts, and SHA-256 identity.",
+      "proof_type": "automated_test",
+      "evidence": "retained_ingestion_test.go persists, discards, reloads, recomputes, and reverifies the source from fresh disk reads.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP01/WP03/WP09"
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Normalized Markdown is a canonical UTF-8 primary artifact with role, media type, length, and digest.",
+      "proof_type": "automated_test",
+      "evidence": "ingestion contract and retained journey tests compare primary bytes and identities after independent reload.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP01/WP04/WP09"
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Derived artifacts carry owned bytes, stable metadata, relationships, lengths, and identities.",
+      "proof_type": "automated_test",
+      "evidence": "converters/pdf detailed and artifact-limit tests plus retained PDF journey verify every derivative and relationship.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP01/WP07/WP09"
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Provenance is deterministic and identifies contract, converter, effective policy, fact origins, and output identities.",
+      "proof_type": "automated_test",
+      "evidence": "ingestion model/engine tests and the 100-run reproducibility matrix compare canonical provenance byte-for-byte.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP01/WP04/WP09"
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Artifact order and local references resolve deterministically after engine-owned final-ID assignment.",
+      "proof_type": "automated_test",
+      "evidence": "PDF mixed-image, identical-occurrence, strict token-boundary, and 100-run tests pass through public Ingest.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP04/WP07"
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "One policy uniformly bounds every local and remote source form before dispatch.",
+      "proof_type": "automated_test",
+      "evidence": "source acquisition and aggregate security boundary matrices pass at limit and fail at limit plus one with zero dispatch.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP02/WP03/WP09"
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "ZIP, EPUB, OOXML, and XLSX share bounded entry, byte, ratio, and depth accounting.",
+      "proof_type": "automated_test",
+      "evidence": "container_security_test.go suites for ZIP, EPUB, DOCX, PPTX, and XLSX pass hostile at-limit/over-limit cases.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP05/WP06"
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Remote access is disabled by default and enabled access re-admits every redirect and pins approved destinations.",
+      "proof_type": "automated_test",
+      "evidence": "internal/ingestion remote tests and source tests cover zero-call disabled authority, IANA address denial, redirects, DNS pinning, and body limits.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP03"
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "OCR, inference, model, component, and download effects remain explicit and inactive by default.",
+      "proof_type": "automated_test",
+      "evidence": "security_boundaries_test.go reports remote/model/component/download counters exactly zero across public matrices.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP09"
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Public failures retain typed unsupported, malformed, limit, policy, integrity, cancellation, and converter categories.",
+      "proof_type": "automated_test",
+      "evidence": "ingestion verifier, source, container, and contract suites use errors.Is/typed outcomes without parsing backend text.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP01-WP07"
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Legacy Result, Converter, and every conversion entry point remain source compatible.",
+      "proof_type": "automated_test",
+      "evidence": "test/contract/legacy_compatibility_test.go compiles an external consumer using positional Result, equality/map keys, custom Converter, and all Convert entry points.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP08"
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "The default CLI retains Markdown stdout and existing flags without implicit binary or envelope output.",
+      "proof_type": "automated_test",
+      "evidence": "cmd/inkbite CLI snapshot and compatibility tests pass; main.go remains frozen.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP08/WP09"
+    },
+    {
+      "criterion_id": "FR-014",
+      "description": "Public verification recomputes identities and rejects malformed, missing, duplicate, substituted, or cross-envelope data without effects.",
+      "proof_type": "automated_test",
+      "evidence": "ingestion_verify_test.go and retained mutation matrices exercise pure VerifyEnvelope with byte mutations and structural substitutions.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP01/WP09"
+    },
+    {
+      "criterion_id": "FR-015",
+      "description": "Primary and derivative bytes/counts are policy-bounded before any successful envelope returns.",
+      "proof_type": "automated_test",
+      "evidence": "ingestion policy, engine, PDF artifact-limit, and aggregate at-limit/plus-one tests pass.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP01/WP02/WP04/WP07/WP09"
+    },
+    {
+      "criterion_id": "FR-016",
+      "description": "Unsupported members and optional extraction failures are visible as stable warnings or typed failures.",
+      "proof_type": "automated_test",
+      "evidence": "ZIP/EPUB detailed warnings and PPTX malformed-notes public Ingest regression pass while legacy Markdown stays stable.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP05/WP06"
+    },
+    {
+      "criterion_id": "FR-017",
+      "description": "A configured engine supports concurrent conversions without cross-request data, policy, artifact, or provenance leakage.",
+      "proof_type": "automated_test",
+      "evidence": "engine 100-run concurrency tests and the full race suite pass with owned byte and request-budget isolation.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP04/WP09"
+    },
+    {
+      "criterion_id": "NFR-001",
+      "description": "Representative text, PDF, office, and nested-archive conversions are byte-reproducible across 100 runs.",
+      "proof_type": "automated_test",
+      "evidence": "test/acceptance/reproducibility_test.go passes its canonical 100-run matrix.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP09"
+    },
+    {
+      "criterion_id": "NFR-002",
+      "description": "Every byte-bearing identity is recomputed and a one-byte mutation is rejected.",
+      "proof_type": "automated_test",
+      "evidence": "public verifier and retained security mutation matrices cover source, primary, and every derivative.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP01/WP09"
+    },
+    {
+      "criterion_id": "NFR-003",
+      "description": "Every source kind passes at 32 MiB and fails at 32 MiB plus one before dispatch.",
+      "proof_type": "automated_test",
+      "evidence": "source acquisition and aggregate boundary tables cover bytes, reader, seeker, path, file URI, data URI, and remote response.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP02/WP03/WP09"
+    },
+    {
+      "criterion_id": "NFR-004",
+      "description": "Container defaults enforce 256 entries, 8 MiB per entry, 32 MiB expanded, depth four, and the ratio ceiling.",
+      "proof_type": "automated_test",
+      "evidence": "shared container-ledger boundary suites pass across ZIP, EPUB, DOCX, PPTX, and XLSX.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP05/WP06"
+    },
+    {
+      "criterion_id": "NFR-005",
+      "description": "Disabled remote authority makes zero calls and enabled policy denies all enumerated non-global destinations and redirect bypasses.",
+      "proof_type": "automated_test",
+      "evidence": "WP03 IANA 2025-10-09 table, redirect, DNS admission, pinned-dial, and zero-authority tests pass.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP03"
+    },
+    {
+      "criterion_id": "NFR-006",
+      "description": "Fallback and error paths perform no hidden inference, component, model, or download effects.",
+      "proof_type": "automated_test",
+      "evidence": "WP09 counting sentinels remain exactly zero in normal and hostile public journeys.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP09"
+    },
+    {
+      "criterion_id": "NFR-007",
+      "description": "Cancellation is typed, returns no envelope, joins owned cooperative work promptly, and never detaches arbitrary non-cooperative reads.",
+      "proof_type": "automated_test",
+      "evidence": "WP03 synchronized ten-case cancellation matrix passes under binding ruling 57bc26c and amendment 9929836.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP03"
+    },
+    {
+      "criterion_id": "NFR-008",
+      "description": "All pre-mission API, converter, CLI, and format contracts remain compatible.",
+      "proof_type": "automated_test",
+      "evidence": "external compatibility fixtures, apidiff, CLI snapshots, and full format tests pass.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP08/WP09"
+    },
+    {
+      "criterion_id": "NFR-009",
+      "description": "The full race suite and concurrent stress matrix report no races, aliasing, or policy leakage.",
+      "proof_type": "automated_test",
+      "evidence": "go test -race ./... and acceptance race count=3 passed once on the final frozen review tree.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP09"
+    },
+    {
+      "criterion_id": "NFR-010",
+      "description": "Fixed-base changed production coverage exceeds 80.0% unrounded with causal mutation evidence.",
+      "proof_type": "automated_test",
+      "evidence": "make quality reports 1815/2053 = 88.407209%; coverage self-mutation changes 1/5 red to 5/5 green.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "Immutable base ee5542edd1ac64b5f66dcb9d0056dd4815739342"
+    },
+    {
+      "criterion_id": "NFR-011",
+      "description": "Errors and public metadata redact credentials, data payloads, source bytes, grants, and backend detail.",
+      "proof_type": "automated_test",
+      "evidence": "sanitization, remote, container, worker-warning, and aggregate secret-sentinel tests pass.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP01-WP07/WP09"
+    },
+    {
+      "criterion_id": "NFR-012",
+      "description": "Binary fixtures and artifact results remain portable across Linux, macOS, and Windows checkouts.",
+      "proof_type": "automated_test",
+      "evidence": "cross-platform CI/compile checks and fresh core.autocrlf=true fixture check preserve 587 bytes and SHA-256 0c839d2bbb8c86f4a4ceb48706070efaed8c9880d15dd7a4b815b6de2b63a23b.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP07/WP09"
+    },
+    {
+      "criterion_id": "NFR-013",
+      "description": "Default primary and derivative result ceilings pass at limit and fail at limit plus one.",
+      "proof_type": "automated_test",
+      "evidence": "policy, engine, PDF, and aggregate boundary suites cover primary 32 MiB, 256 artifacts, 8 MiB each, and 32 MiB aggregate.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP01/WP02/WP04/WP07/WP09"
+    },
+    {
+      "criterion_id": "C-001",
+      "description": "Repository-authored source remains MIT; adopted components are recorded; official artifacts are source-only and cannot publish the unqualified GPL-linked binary.",
+      "proof_type": "automated_test",
+      "evidence": "WP09 source-package/publication matrix inspects exact 355-file tracked-source manifests, forbids executables/vendor/dependency source, and pins CI/tag upload paths plus the GPL warning.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "Arbiter ruling cb482ca; source package reproducibility verified."
+    },
+    {
+      "criterion_id": "C-002",
+      "description": "Inkbite returns owned values but does not own Nano Kitty persistence or cleanup policy.",
+      "proof_type": "code_review",
+      "evidence": "Retained journey uses a host-owned temporary store; no production persistent/session store was introduced.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "Storage-agnostic boundary preserved."
+    },
+    {
+      "criterion_id": "C-003",
+      "description": "Conversion performs no automatic network expansion or component/model download.",
+      "proof_type": "automated_test",
+      "evidence": "Remote is off by default and WP09 hidden-effect counters remain zero.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP03/WP09"
+    },
+    {
+      "criterion_id": "C-004",
+      "description": "Detailed and legacy conversion use one engine/registry/acquisition/sealing pipeline.",
+      "proof_type": "code_review",
+      "evidence": "WP04 shared runIngestionPipeline is the single authority; all legacy entry points project from it.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "No second privileged ingestion implementation."
+    },
+    {
+      "criterion_id": "C-005",
+      "description": "Identity, artifact, and policy contracts preserve future streaming compatibility.",
+      "proof_type": "code_review",
+      "evidence": "Public values bind exact bytes/digests and policy without exposing storage locations or requiring current buffer internals.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "No streaming-precluding public surface added."
+    },
+    {
+      "criterion_id": "C-006",
+      "description": "Content identity is canonical lowercase SHA-256 over exact bytes only.",
+      "proof_type": "automated_test",
+      "evidence": "Verifier recomputation and mutation tests cover every source/primary/derivative identity.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "Display metadata excluded from identity."
+    },
+    {
+      "criterion_id": "C-007",
+      "description": "Returned byte slices do not alias caller buffers, scratch storage, or other artifacts.",
+      "proof_type": "automated_test",
+      "evidence": "WP01 accessible-capacity overlap checks, WP02 clipped read seals, WP04 envelope seals, and concurrent alias stress pass.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "Owned/cap-clipped values verified."
+    },
+    {
+      "criterion_id": "C-008",
+      "description": "The mission adds no new format, OCR, captioning, transcription, or layout-fidelity promise.",
+      "proof_type": "code_review",
+      "evidence": "Scope changes only the ingestion contract, trust boundaries, existing PDF derivatives, compatibility docs, and release qualification.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "Existing format semantics preserved."
+    },
+    {
+      "criterion_id": "SC-001",
+      "description": "A host can ingest, verify, persist, discard runtime state, reload exact text/PDF values, and reverify.",
+      "proof_type": "automated_test",
+      "evidence": "test/acceptance/retained_ingestion_test.go passes from fresh disk reads after all original runtime values are dropped.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "Public APIs only."
+    },
+    {
+      "criterion_id": "SC-002",
+      "description": "Representative text, PDF, office, and nested archive results are canonical across 100 conversions.",
+      "proof_type": "automated_test",
+      "evidence": "test/acceptance/reproducibility_test.go 100-run matrix passes.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "Byte-identical canonical results."
+    },
+    {
+      "criterion_id": "SC-003",
+      "description": "All source, output, artifact, and container policy boundaries pass at limit and fail above it without partial success.",
+      "proof_type": "automated_test",
+      "evidence": "WP02-WP07 boundary tables and WP09 aggregate matrix pass.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "No disallowed downstream work on over-limit cases."
+    },
+    {
+      "criterion_id": "SC-004",
+      "description": "Remote policy proves zero disabled calls and denies all enumerated address/redirect bypasses.",
+      "proof_type": "automated_test",
+      "evidence": "WP03 remote authority and IANA registry matrix pass.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "Authorized public fixture path preserved."
+    },
+    {
+      "criterion_id": "SC-005",
+      "description": "Mutation, omission, duplicate, invalid reference, and cross-envelope substitution all fail verification.",
+      "proof_type": "automated_test",
+      "evidence": "ingestion verifier and WP09 security mutation matrices pass.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "Pure public verification."
+    },
+    {
+      "criterion_id": "SC-006",
+      "description": "Existing API, custom converter, CLI, and format suites remain green without adopting the new contract.",
+      "proof_type": "automated_test",
+      "evidence": "External legacy fixture, CLI snapshots, all converter tests, full normal suite, and apidiff pass.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "Backward compatibility preserved."
+    },
+    {
+      "criterion_id": "SC-007",
+      "description": "Final source-only release qualification has no regression, race, reachable vulnerability, licensing gap, portability drift, or quality failure.",
+      "proof_type": "automated_test",
+      "evidence": "WP09 cycle-3 reviewer ran all nine mandatory commands once; coverage 1815/2053=88.407209%, zero reachable vulnerabilities, exact source-only publication surfaces, all gates green.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "Frozen review HEAD 5db4ac5d19ba4522109ee5712eb128d84de193ff."
+    },
+    {
+      "criterion_id": "SC-008",
+      "description": "Public contract and civic adoption documentation are sufficient for host retention and release responsibility without reading internals.",
+      "proof_type": "code_review",
+      "evidence": "README, public API/schema/quickstart contracts, ADOPTED_COMPONENTS, and CHANGELOG align with shipped behavior and source-only release boundary.",
+      "pass_fail": "pass",
+      "verified_by": "WP09 independent cycle-3 review",
+      "verified_at": "2026-08-22",
+      "notes": "WP08/WP09"
+    }
+  ],
+  "negative_invariants": [
+    {
+      "invariant_id": "NI-HIDDEN-EFFECTS",
+      "description": "Ordinary conversion and verification must not invoke remote, model, component, or download authority.",
+      "verification_method": "custom_command",
+      "verification_command": "go test ./test/acceptance -run 'TestSecurityBoundaries' -count=1",
+      "result": "confirmed_absent",
+      "evidence": "WP09 aggregate counters are exactly zero."
+    },
+    {
+      "invariant_id": "NI-PARTIAL-SUCCESS",
+      "description": "Policy, integrity, cancellation, or malformed input must never return a successful partial envelope.",
+      "verification_method": "custom_command",
+      "verification_command": "go test ./test/acceptance ./test/contract -count=1",
+      "result": "confirmed_absent",
+      "evidence": "Boundary and mutation matrices return typed failure and zero envelope."
+    },
+    {
+      "invariant_id": "NI-REMOTE-DEFAULT",
+      "description": "Remote authority must remain disabled and effect-free by default.",
+      "verification_method": "custom_command",
+      "verification_command": "go test ./... -run 'Remote|HTTP' -count=1",
+      "result": "confirmed_absent",
+      "evidence": "Disabled-authority production-path tests observe zero resolver/dial/transport calls."
+    },
+    {
+      "invariant_id": "NI-BYTE-ALIAS",
+      "description": "Returned source, primary, and derivative byte storage must not overlap caller or sibling accessible capacity.",
+      "verification_method": "custom_command",
+      "verification_command": "go test . ./internal/ingestion -count=20",
+      "result": "confirmed_absent",
+      "evidence": "Capacity-range alias, clipped seal, and mutation tests pass."
+    },
+    {
+      "invariant_id": "NI-ARTIFACT-REFERENCE",
+      "description": "Only complete locally valid artifact tokens may rewrite to engine-owned final IDs.",
+      "verification_method": "custom_command",
+      "verification_command": "go test ./converters/pdf -count=20",
+      "result": "confirmed_absent",
+      "evidence": "Mixed-image, identical-occurrence, opener/delimiter, malformed, and substring-preservation matrices pass."
+    },
+    {
+      "invariant_id": "NI-LINKED-BINARY-PUBLICATION",
+      "description": "Official workflows must not package or publish a linked Inkbite executable or dependency bundle.",
+      "verification_method": "custom_command",
+      "verification_command": "go test ./test/acceptance -run 'ReleasePackaging|ReleaseWorkflows|LegacyDist' -count=1",
+      "result": "confirmed_absent",
+      "evidence": "Exact 355-file source manifests, forbidden binary/vendor mutations, canonical delegation, and exact upload paths pass."
+    },
+    {
+      "invariant_id": "NI-REVIEW-LOCK-DIRT",
+      "description": "Quality may tolerate only an unchanged pre-existing regular Spec Kitty review lock; all other dirt must fail.",
+      "verification_method": "custom_command",
+      "verification_command": "go test ./test/acceptance -run 'ReviewLock|RepositoryCleanliness' -count=1",
+      "result": "confirmed_absent",
+      "evidence": "Create/delete/modify/symlink/extra-path and unrelated-dirt cases fail; unchanged lock passes."
+    },
+    {
+      "invariant_id": "NI-FROZEN-RELEASE",
+      "description": "The terminal release sequence must run once in order on one committed tree and stop on the first failure.",
+      "verification_method": "reviewed_evidence",
+      "verification_command": "WP09 mandatory commands 1-9",
+      "result": "confirmed_absent",
+      "evidence": "Cycle-3 independent reviewer recorded all nine commands green on frozen HEAD 5db4ac5 without retry or mutation."
+    }
+  ]
+}
