@@ -137,10 +137,10 @@ All planning artifacts were generated on `feat/inkbite-ingestion-contract`. Spec
 **Priority**: P0
 **Dependencies**: WP01
 
-- [ ] T006 Build bounded read, clone, digest, and limit-plus-one primitives (WP02)
-- [ ] T007 Build request-local source/output/artifact/container budgets (WP02)
-- [ ] T008 Build safe name/location/metadata canonicalization (WP02)
-- [ ] T009 Build cancellation checkpoints and central-guard mutation tests (WP02)
+- [x] T006 Build bounded read, clone, digest, and limit-plus-one primitives (WP02)
+- [x] T007 Build request-local source/output/artifact/container budgets (WP02)
+- [x] T008 Build safe name/location/metadata canonicalization (WP02)
+- [x] T009 Build cancellation checkpoints and central-guard mutation tests (WP02)
 
 ## WP03 — Source Acquisition and Remote Authority
 
