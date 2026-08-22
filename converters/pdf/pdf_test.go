@@ -209,6 +209,10 @@ func makeSimplePDF(text string) []byte {
 }
 
 func makeImageXObjectPDF(text string) []byte {
+	return makeImageXObjectPDFWithDictionary(text, "")
+}
+
+func makeImageXObjectPDFWithDictionary(text, imageDictionary string) []byte {
 	textStream := "BT\n/F1 24 Tf\n100 100 Td\n(" + escapePDFString(text) + ") Tj\nET\nq\n1 0 0 1 20 20 cm\n/Im1 Do\nQ"
 	imageStream := "0"
 	objects := []string{
@@ -217,7 +221,7 @@ func makeImageXObjectPDF(text string) []byte {
 		"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 144] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> /XObject << /Im1 6 0 R >> >> >>",
 		fmt.Sprintf("<< /Length %d >>\nstream\n%s\nendstream", len(textStream), textStream),
 		"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-		fmt.Sprintf("<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Length %d >>\nstream\n%s\nendstream", len(imageStream), imageStream),
+		fmt.Sprintf("<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 %s /Length %d >>\nstream\n%s\nendstream", imageDictionary, len(imageStream), imageStream),
 	}
 
 	var doc bytes.Buffer

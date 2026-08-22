@@ -27,10 +27,15 @@ The format is intentionally lightweight at the current stage of the project.
 - release workflow for tagged builds and generated release notes
 - cross-platform CI coverage for Linux, macOS, and Windows with race detection
   and automated `govulncheck` scanning
-- packaged release archives for Linux, macOS, and Windows with generated
-  checksum manifests
+- deterministic source-only `tar.gz` and `zip` release archives containing the
+  exact committed tracked-source manifest, with generated checksums
 
 ### Changed
+
+Default Inkbite binaries link GPL-3.0-only xlsReader, are not MIT-only, and are not qualified for redistribution by this workflow.
+
+- repository CI and tag publication now upload only qualified source archives;
+  binary builds remain verification-only
 
 - PDF extraction is fully self-contained and no longer depends on external
   executables

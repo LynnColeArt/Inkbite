@@ -8,18 +8,25 @@ import (
 	"fmt"
 	"io"
 	"mime"
-	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
+	"time"
+
+	internalingestion "github.com/LynnColeArt/Inkbite/internal/ingestion"
 )
 
 type resolvedSource struct {
-	reader *bytes.Reader
-	info   StreamInfo
+	reader          *bytes.Reader
+	info            StreamInfo
+	owned           internalingestion.OwnedBytes
+	kind            SourceKind
+	display         string
+	facts           []internalingestion.Fact
+	callerTransport bool
 }
 
 func (e *Engine) resolveSource(
@@ -28,52 +35,70 @@ func (e *Engine) resolveSource(
 	info *StreamInfo,
 	opts ConvertOptions,
 ) (resolvedSource, error) {
-	var base StreamInfo
-	var data []byte
-	var err error
+	return e.acquireSource(ctx, src, info, opts, DefaultMaxSourceBytes)
+}
+
+func (e *Engine) acquireSource(
+	ctx context.Context,
+	src any,
+	info *StreamInfo,
+	opts ConvertOptions,
+	limit int64,
+) (resolvedSource, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := internalingestion.Checkpoint(ctx); err != nil {
+		return resolvedSource{}, sourceAcquisitionError("source-start", err)
+	}
+	caller := dereferenceInfo(info)
 
 	switch value := src.(type) {
 	case string:
 		if looksLikeURI(value) {
-			return e.resolveURI(ctx, value, info, opts)
+			return e.acquireURI(ctx, value, caller, opts, limit)
 		}
-
-		data, err = os.ReadFile(value)
+		file, err := os.Open(value)
 		if err != nil {
-			return resolvedSource{}, err
+			return resolvedSource{}, sourceAcquisitionError("source-open", err)
 		}
-		base = StreamInfo{
-			LocalPath: value,
+		defer file.Close()
+		owned, err := readSourceBounded(ctx, file, limit)
+		if err != nil {
+			return resolvedSource{}, sourceAcquisitionError("source-read", err)
+		}
+		sourceInfo := StreamInfo{
 			Filename:  filepath.Base(value),
 			Extension: filepath.Ext(value),
 		}
+		return sealResolvedSource(owned, SourceKindFile, sourceInfo, caller, sourceInfo.Filename, false), nil
 	case []byte:
-		data = value
+		owned, err := internalingestion.OwnBounded(ctx, value, limit)
+		if err != nil {
+			return resolvedSource{}, sourceAcquisitionError("source-own", err)
+		}
+		return sealResolvedSource(owned, SourceKindBytes, StreamInfo{}, caller, "", false), nil
 	case io.ReadSeeker:
-		if _, err = value.Seek(0, io.SeekStart); err != nil {
-			return resolvedSource{}, err
+		if _, err := value.Seek(0, io.SeekStart); err != nil {
+			return resolvedSource{}, sourceAcquisitionError("source-seek", err)
 		}
-		data, err = io.ReadAll(value)
+		if err := internalingestion.Checkpoint(ctx); err != nil {
+			return resolvedSource{}, sourceAcquisitionError("source-seek", err)
+		}
+		owned, err := readSourceBounded(ctx, value, limit)
 		if err != nil {
-			return resolvedSource{}, err
+			return resolvedSource{}, sourceAcquisitionError("source-read", err)
 		}
+		return sealResolvedSource(owned, SourceKindReader, StreamInfo{}, caller, "", false), nil
 	case io.Reader:
-		data, err = io.ReadAll(value)
+		owned, err := readSourceBounded(ctx, value, limit)
 		if err != nil {
-			return resolvedSource{}, err
+			return resolvedSource{}, sourceAcquisitionError("source-read", err)
 		}
+		return sealResolvedSource(owned, SourceKindReader, StreamInfo{}, caller, "", false), nil
 	default:
 		return resolvedSource{}, InvalidSourceError{Value: src}
 	}
-
-	if info != nil {
-		base = base.Merge(*info)
-	}
-
-	return resolvedSource{
-		reader: bytes.NewReader(data),
-		info:   base.normalize(),
-	}, nil
 }
 
 func (e *Engine) resolveURI(
@@ -82,120 +107,90 @@ func (e *Engine) resolveURI(
 	info *StreamInfo,
 	opts ConvertOptions,
 ) (resolvedSource, error) {
+	return e.acquireURI(ctx, raw, dereferenceInfo(info), opts, DefaultMaxSourceBytes)
+}
+
+func (e *Engine) acquireURI(
+	ctx context.Context,
+	raw string,
+	caller StreamInfo,
+	opts ConvertOptions,
+	limit int64,
+) (resolvedSource, error) {
+	raw = strings.TrimSpace(raw)
 	parsed, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil {
-		return resolvedSource{}, err
+		return resolvedSource{}, sourceAcquisitionError("source-uri", internalingestion.ErrIntegrityFailure)
 	}
 
-	switch parsed.Scheme {
+	switch strings.ToLower(parsed.Scheme) {
 	case "file":
 		filePath, err := fileURIToPath(parsed)
 		if err != nil {
-			return resolvedSource{}, err
+			return resolvedSource{}, sourceAcquisitionError("source-uri", internalingestion.ErrIntegrityFailure)
 		}
-
-		source, err := e.resolveSource(ctx, filePath, info, opts)
+		file, err := os.Open(filePath)
 		if err != nil {
-			return resolvedSource{}, err
+			return resolvedSource{}, sourceAcquisitionError("source-open", err)
 		}
-		source.info.URL = raw
-		return source, nil
+		defer file.Close()
+		owned, err := readSourceBounded(ctx, file, limit)
+		if err != nil {
+			return resolvedSource{}, sourceAcquisitionError("source-read", err)
+		}
+		sourceInfo := StreamInfo{Filename: filepath.Base(filePath), Extension: filepath.Ext(filePath)}
+		return sealResolvedSource(owned, SourceKindFile, sourceInfo, caller, sourceInfo.Filename, false), nil
 	case "data":
-		mediaType, attributes, data, err := parseDataURI(raw)
+		mediaType, attributes, reader, err := dataURIReader(raw)
 		if err != nil {
-			return resolvedSource{}, err
+			return resolvedSource{}, sourceAcquisitionError("source-data-uri", internalingestion.ErrIntegrityFailure)
 		}
-
-		base := StreamInfo{
+		owned, err := internalingestion.ReadBounded(ctx, reader, limit)
+		if err != nil {
+			return resolvedSource{}, sourceAcquisitionError("source-data-uri", err)
+		}
+		sourceInfo := StreamInfo{
 			MIMEType: mediaType,
 			Charset:  attributes["charset"],
-			URL:      raw,
 		}
-		if info != nil {
-			base = base.Merge(*info)
-		}
-
-		return resolvedSource{
-			reader: bytes.NewReader(data),
-			info:   base.normalize(),
-		}, nil
+		return sealResolvedSource(owned, SourceKindDataURI, sourceInfo, caller, "", false), nil
 	case "http", "https":
-		if !opts.EnableHTTP {
-			return resolvedSource{}, ErrRemoteDisabled
+		remoteLimit := limit
+		if optionLimit := opts.maxHTTPBytes(); optionLimit < remoteLimit {
+			remoteLimit = optionLimit
 		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, raw, nil)
+		client, callerTransport := callerHTTPClient(e.httpClient)
+		var timeout time.Duration
+		if e.httpClient != nil {
+			timeout = e.httpClient.Timeout
+		}
+		remote, err := internalingestion.AcquireRemote(ctx, raw, internalingestion.RemoteConfig{
+			Enabled:  opts.EnableHTTP,
+			MaxBytes: remoteLimit,
+			Client:   client,
+			Timeout:  timeout,
+		})
 		if err != nil {
-			return resolvedSource{}, err
+			return resolvedSource{}, publicRemoteError(err)
 		}
-		req.Header.Set("Accept", "text/markdown, text/html;q=0.9, text/plain;q=0.8, */*;q=0.1")
-
-		resp, err := e.httpClient.Do(req)
-		if err != nil {
-			return resolvedSource{}, err
+		sourceInfo := StreamInfo{
+			MIMEType:  remote.MediaType,
+			Charset:   remote.Charset,
+			Extension: remote.Extension,
+			Filename:  remote.SafeName,
 		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode >= http.StatusBadRequest {
-			return resolvedSource{}, fmt.Errorf("http %d for %s", resp.StatusCode, raw)
-		}
-
-		limit := opts.maxHTTPBytes()
-		if resp.ContentLength > limit {
-			return resolvedSource{}, fmt.Errorf("%w: %s exceeds %d bytes", ErrRemoteTooLarge, raw, limit)
-		}
-
-		data, err := readAllWithLimit(resp.Body, limit)
-		if err != nil {
-			return resolvedSource{}, err
-		}
-
-		mediaType, params := splitContentType(resp.Header.Get("Content-Type"))
-		filename := path.Base(parsed.Path)
-		if filename == "." || filename == "/" {
-			filename = ""
-		}
-
-		base := StreamInfo{
-			MIMEType:  mediaType,
-			Charset:   params["charset"],
-			Extension: strings.ToLower(filepath.Ext(parsed.Path)),
-			Filename:  filename,
-			URL:       raw,
-		}
-		if info != nil {
-			base = base.Merge(*info)
-		}
-
-		return resolvedSource{
-			reader: bytes.NewReader(data),
-			info:   base.normalize(),
-		}, nil
+		return sealResolvedSource(remote.Owned, SourceKindRemote, sourceInfo, caller, remote.Display, callerTransport || remote.CallerTransport), nil
 	default:
-		return resolvedSource{}, fmt.Errorf("%w: unsupported URI scheme %q", ErrInvalidSource, parsed.Scheme)
+		return resolvedSource{}, fmt.Errorf("%w: unsupported URI scheme", ErrInvalidSource)
 	}
-}
-
-func readAllWithLimit(r io.Reader, limit int64) ([]byte, error) {
-	if limit <= 0 {
-		return io.ReadAll(r)
-	}
-
-	data, err := io.ReadAll(io.LimitReader(r, limit+1))
-	if err != nil {
-		return nil, err
-	}
-	if int64(len(data)) > limit {
-		return nil, fmt.Errorf("%w: exceeds %d bytes", ErrRemoteTooLarge, limit)
-	}
-	return data, nil
 }
 
 func looksLikeURI(raw string) bool {
-	return strings.HasPrefix(raw, "file:") ||
-		strings.HasPrefix(raw, "data:") ||
-		strings.HasPrefix(raw, "http://") ||
-		strings.HasPrefix(raw, "https://")
+	lower := strings.ToLower(strings.TrimSpace(raw))
+	return strings.HasPrefix(lower, "file:") ||
+		strings.HasPrefix(lower, "data:") ||
+		strings.HasPrefix(lower, "http://") ||
+		strings.HasPrefix(lower, "https://")
 }
 
 func splitContentType(contentType string) (string, map[string]string) {
@@ -217,10 +212,13 @@ func fileURIToPath(u *url.URL) (string, error) {
 		return "", errors.New("nil file URI")
 	}
 	if u.Scheme != "file" {
-		return "", fmt.Errorf("expected file URI, got %q", u.Scheme)
+		return "", errors.New("expected file URI")
 	}
-	if u.Host != "" && u.Host != "localhost" {
-		return "", fmt.Errorf("unsupported file host %q", u.Host)
+	if u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+		return "", errors.New("unsafe file URI")
+	}
+	if u.Host != "" && !strings.EqualFold(u.Host, "localhost") {
+		return "", errors.New("unsupported file host")
 	}
 
 	p, err := url.PathUnescape(u.Path)
@@ -242,53 +240,228 @@ func isWindowsDriveLetter(b byte) bool {
 }
 
 func parseDataURI(raw string) (string, map[string]string, []byte, error) {
-	if !strings.HasPrefix(raw, "data:") {
+	mediaType, attributes, reader, err := dataURIReader(raw)
+	if err != nil {
+		return "", nil, nil, err
+	}
+	decoded, err := io.ReadAll(reader)
+	if err != nil {
+		return "", nil, nil, errors.New("invalid data URI encoding")
+	}
+	return mediaType, attributes, decoded, nil
+}
+
+func dataURIReader(raw string) (string, map[string]string, io.Reader, error) {
+	if !strings.HasPrefix(strings.ToLower(raw), "data:") {
 		return "", nil, nil, errors.New("not a data URI")
 	}
-
-	payload := strings.TrimPrefix(raw, "data:")
+	payload := raw[len("data:"):]
 	meta, data, found := strings.Cut(payload, ",")
 	if !found {
 		return "", nil, nil, errors.New("invalid data URI")
 	}
-
 	attributes := map[string]string{}
-	var mediaType string
+	mediaType := ""
 	isBase64 := false
-
-	if meta != "" {
-		for idx, token := range strings.Split(meta, ";") {
-			token = strings.TrimSpace(token)
-			if token == "" {
-				continue
+	for idx, token := range strings.Split(meta, ";") {
+		token = strings.TrimSpace(token)
+		if token == "" {
+			continue
+		}
+		switch {
+		case idx == 0 && strings.Contains(token, "/"):
+			if canonical, err := internalingestion.CanonicalMediaType(token); err == nil {
+				mediaType = canonical
 			}
-
-			switch {
-			case idx == 0 && strings.Contains(token, "/"):
-				mediaType = strings.ToLower(token)
-			case strings.EqualFold(token, "base64"):
-				isBase64 = true
-			case strings.Contains(token, "="):
-				key, value, _ := strings.Cut(token, "=")
-				attributes[strings.ToLower(strings.TrimSpace(key))] = strings.TrimSpace(value)
+		case strings.EqualFold(token, "base64"):
+			isBase64 = true
+		case strings.Contains(token, "="):
+			key, value, _ := strings.Cut(token, "=")
+			key = strings.ToLower(strings.TrimSpace(key))
+			value = strings.TrimSpace(value)
+			if key == "charset" {
+				if fact, err := internalingestion.NewFact("charset", value, internalingestion.OriginSource); err == nil {
+					attributes[key] = fact.Value
+				}
 			}
 		}
 	}
-
-	var decoded []byte
-	var err error
 	if isBase64 {
-		decoded, err = base64.StdEncoding.DecodeString(data)
-		if err != nil {
-			return "", nil, nil, err
-		}
-	} else {
-		unescaped, err := url.PathUnescape(data)
-		if err != nil {
-			return "", nil, nil, err
-		}
-		decoded = []byte(unescaped)
+		return mediaType, attributes, base64.NewDecoder(base64.StdEncoding, strings.NewReader(data)), nil
 	}
+	return mediaType, attributes, &percentDataReader{raw: data}, nil
+}
 
-	return mediaType, attributes, decoded, nil
+type percentDataReader struct {
+	raw   string
+	index int
+}
+
+func (r *percentDataReader) Read(output []byte) (int, error) {
+	if r.index >= len(r.raw) {
+		return 0, io.EOF
+	}
+	written := 0
+	for written < len(output) && r.index < len(r.raw) {
+		value := r.raw[r.index]
+		if value == '%' {
+			if r.index+2 >= len(r.raw) {
+				return written, errors.New("invalid data URI encoding")
+			}
+			high, okHigh := hexNibble(r.raw[r.index+1])
+			low, okLow := hexNibble(r.raw[r.index+2])
+			if !okHigh || !okLow {
+				return written, errors.New("invalid data URI encoding")
+			}
+			value = high<<4 | low
+			r.index += 3
+		} else {
+			r.index++
+		}
+		output[written] = value
+		written++
+	}
+	return written, nil
+}
+
+func hexNibble(value byte) (byte, bool) {
+	switch {
+	case value >= '0' && value <= '9':
+		return value - '0', true
+	case value >= 'a' && value <= 'f':
+		return value - 'a' + 10, true
+	case value >= 'A' && value <= 'F':
+		return value - 'A' + 10, true
+	default:
+		return 0, false
+	}
+}
+
+func sealResolvedSource(owned internalingestion.OwnedBytes, kind SourceKind, sourceInfo, caller StreamInfo, display string, callerTransport bool) resolvedSource {
+	safeInfo := safeMergedInfo(sourceInfo, caller)
+	return resolvedSource{
+		reader:          bytes.NewReader(owned.Bytes),
+		info:            safeInfo,
+		owned:           owned,
+		kind:            kind,
+		display:         display,
+		facts:           safeStreamFacts(sourceInfo, caller, StreamInfo{}),
+		callerTransport: callerTransport,
+	}
+}
+
+func safeMergedInfo(source, caller StreamInfo) StreamInfo {
+	var safe StreamInfo
+	for _, fact := range safeStreamFacts(source, caller, StreamInfo{}) {
+		switch fact.Kind {
+		case "media_type":
+			safe.MIMEType = fact.Value
+		case "extension":
+			safe.Extension = fact.Value
+		case "charset":
+			safe.Charset = fact.Value
+		case "filename":
+			safe.Filename = fact.Value
+		}
+	}
+	return safe.normalize()
+}
+
+func safeStreamFacts(source, caller, sniff StreamInfo) []internalingestion.Fact {
+	facts := make([]internalingestion.Fact, 0, 12)
+	facts = appendSafeInfoFacts(facts, source, internalingestion.OriginSource)
+	facts = appendSafeInfoFacts(facts, caller, internalingestion.OriginCaller)
+	facts = appendSafeInfoFacts(facts, sniff, internalingestion.OriginSniff)
+	return facts
+}
+
+func appendSafeInfoFacts(facts []internalingestion.Fact, info StreamInfo, origin internalingestion.FactOrigin) []internalingestion.Fact {
+	mediaType, params := splitContentType(info.MIMEType)
+	values := []struct {
+		kind  string
+		value string
+	}{
+		{kind: "media_type", value: mediaType},
+		{kind: "charset", value: firstNonempty(info.Charset, params["charset"])},
+		{kind: "filename", value: info.Filename},
+		{kind: "extension", value: info.Extension},
+	}
+	for _, value := range values {
+		if value.value == "" {
+			continue
+		}
+		if fact, err := internalingestion.NewFact(value.kind, value.value, origin); err == nil {
+			facts = append(facts, fact)
+		}
+	}
+	return facts
+}
+
+func firstNonempty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func dereferenceInfo(info *StreamInfo) StreamInfo {
+	if info == nil {
+		return StreamInfo{}
+	}
+	return *info
+}
+
+func readSourceBounded(ctx context.Context, reader io.Reader, limit int64) (internalingestion.OwnedBytes, error) {
+	closer, canClose := reader.(io.Closer)
+	if !canClose {
+		return internalingestion.ReadBounded(ctx, reader, limit)
+	}
+	stop := make(chan struct{})
+	joined := make(chan struct{})
+	var once sync.Once
+	go func() {
+		defer close(joined)
+		select {
+		case <-ctx.Done():
+			once.Do(func() { _ = closer.Close() })
+		case <-stop:
+		}
+	}()
+	owned, err := internalingestion.ReadBounded(ctx, reader, limit)
+	close(stop)
+	<-joined
+	if ctx.Err() != nil {
+		return internalingestion.OwnedBytes{}, fmt.Errorf("%w: %w", internalingestion.ErrCancellation, ctx.Err())
+	}
+	return owned, err
+}
+
+func sourceAcquisitionError(operation string, err error) error {
+	switch {
+	case errors.Is(err, internalingestion.ErrLimitExceeded):
+		return &FailureError{Category: FailureLimit, Operation: operation, Cause: err}
+	case errors.Is(err, internalingestion.ErrCancellation):
+		return &FailureError{Category: FailureCancellation, Operation: operation, Cause: err}
+	case errors.Is(err, internalingestion.ErrPolicyViolation):
+		return &FailureError{Category: FailurePolicy, Operation: operation, Cause: err}
+	default:
+		return &FailureError{Category: FailureIntegrity, Operation: operation, Cause: err}
+	}
+}
+
+func publicRemoteError(err error) error {
+	switch {
+	case errors.Is(err, internalingestion.ErrRemoteDisabled):
+		return ErrRemoteDisabled
+	case errors.Is(err, internalingestion.ErrRemoteTooLarge):
+		return ErrRemoteTooLarge
+	case errors.Is(err, internalingestion.ErrRemoteDenied):
+		return &FailureError{Category: FailurePolicy, Operation: "remote-admission", Cause: err}
+	case errors.Is(err, internalingestion.ErrCancellation):
+		return &FailureError{Category: FailureCancellation, Operation: "remote-read", Cause: err}
+	default:
+		return &FailureError{Category: FailureIntegrity, Operation: "remote-read", Cause: err}
+	}
 }

@@ -2,14 +2,11 @@ package inkbite
 
 import (
 	"context"
-	"errors"
 	"io"
 	"net/http"
 	"slices"
 	"sort"
 	"time"
-
-	"github.com/LynnColeArt/Inkbite/internal/normalize"
 )
 
 // Engine coordinates source handling, stream typing, and converter dispatch.
@@ -59,17 +56,13 @@ func (e *Engine) Convert(
 	info *StreamInfo,
 	opts ConvertOptions,
 ) (Result, error) {
-	resolved, err := e.resolveSource(ctx, src, info, opts)
+	policy := DefaultIngestionPolicy()
+	policy.Remote.Enabled = opts.EnableHTTP
+	result, err := e.runIngestionPipeline(ctx, src, info, opts, policy, ingestionDispatchLegacy)
 	if err != nil {
 		return Result{}, err
 	}
-
-	enriched, err := enrichStreamInfo(resolved.reader, resolved.info)
-	if err != nil {
-		return Result{}, err
-	}
-
-	return e.convertResolved(ctx, resolved.reader, enriched, opts)
+	return result.legacy, nil
 }
 
 // ConvertPath converts a local file path.
@@ -100,48 +93,4 @@ func (e *Engine) ConvertURI(
 	opts ConvertOptions,
 ) (Result, error) {
 	return e.Convert(ctx, uri, info, opts)
-}
-
-func (e *Engine) convertResolved(
-	ctx context.Context,
-	reader io.ReadSeeker,
-	info StreamInfo,
-	opts ConvertOptions,
-) (Result, error) {
-	var attempts []ConversionError
-
-	for _, converter := range e.RegisteredConverters() {
-		if _, err := reader.Seek(0, io.SeekStart); err != nil {
-			return Result{}, err
-		}
-
-		if !converter.Accepts(ctx, reader, info, opts) {
-			continue
-		}
-
-		if _, err := reader.Seek(0, io.SeekStart); err != nil {
-			return Result{}, err
-		}
-
-		result, err := converter.Convert(ctx, reader, info, opts)
-		if err != nil {
-			if errors.Is(err, ErrUnsupportedFormat) {
-				continue
-			}
-			attempts = append(attempts, ConversionError{
-				Converter: converter.Name(),
-				Err:       err,
-			})
-			continue
-		}
-
-		result.Markdown = normalize.Markdown(result.Markdown, opts.KeepDataURIs)
-		return result, nil
-	}
-
-	if len(attempts) > 0 {
-		return Result{}, FailedAttemptsError{Attempts: attempts}
-	}
-
-	return Result{}, UnsupportedFormatError{Info: info}
 }

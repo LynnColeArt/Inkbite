@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/LynnColeArt/Inkbite"
+	internalingestion "github.com/LynnColeArt/Inkbite/internal/ingestion"
 	"github.com/LynnColeArt/Inkbite/internal/ooxml"
 )
 
@@ -57,57 +58,92 @@ func (c *Converter) Accepts(
 }
 
 func (c *Converter) Convert(
-	_ context.Context,
+	ctx context.Context,
+	r io.ReadSeeker,
+	info inkbite.StreamInfo,
+	opts inkbite.ConvertOptions,
+) (inkbite.Result, error) {
+	result, _, err := c.convert(ctx, r, info, opts, inkbite.DefaultIngestionPolicy())
+	return result, err
+}
+
+// ConvertDetailed applies the caller's container policy while preserving the
+// converter's legacy text result.
+func (c *Converter) ConvertDetailed(
+	ctx context.Context,
+	r io.ReadSeeker,
+	info inkbite.StreamInfo,
+	opts inkbite.ConvertOptions,
+	policy inkbite.IngestionPolicy,
+) (inkbite.DetailedConversion, error) {
+	result, warnings, err := c.convert(ctx, r, info, opts, policy)
+	return inkbite.DetailedConversion{Result: result, Warnings: warnings}, err
+}
+
+func (c *Converter) convert(
+	ctx context.Context,
 	r io.ReadSeeker,
 	info inkbite.StreamInfo,
 	_ inkbite.ConvertOptions,
-) (inkbite.Result, error) {
+	policy inkbite.IngestionPolicy,
+) (inkbite.Result, []inkbite.WarningRecord, error) {
+	ctx, err := pptxRequestContext(ctx, policy)
+	if err != nil {
+		return inkbite.Result{}, nil, err
+	}
+	if err := internalingestion.Checkpoint(ctx); err != nil {
+		return inkbite.Result{}, nil, err
+	}
 	if _, err := r.Seek(0, io.SeekStart); err != nil {
-		return inkbite.Result{}, err
+		return inkbite.Result{}, nil, err
 	}
 
-	data, err := io.ReadAll(r)
+	data, err := internalingestion.ReadBounded(ctx, r, policy.MaxSourceBytes)
 	if err != nil {
-		return inkbite.Result{}, err
+		return inkbite.Result{}, nil, err
 	}
 
-	pkg, err := ooxml.Open(data)
+	pkg, err := ooxml.Open(ctx, data.Bytes)
 	if err != nil {
-		return inkbite.Result{}, err
+		return inkbite.Result{}, nil, err
 	}
 
 	presentationXML, ok := pkg.ReadFile("ppt/presentation.xml")
 	if !ok {
-		return inkbite.Result{}, inkbite.UnsupportedFormatError{Info: info}
+		return inkbite.Result{}, nil, inkbite.UnsupportedFormatError{Info: info}
 	}
 
 	presentation, err := ooxml.ParseNode(presentationXML)
 	if err != nil {
-		return inkbite.Result{}, err
+		return inkbite.Result{}, nil, err
 	}
 
 	relationships := map[string]string{}
 	if relXML, ok := pkg.ReadFile("ppt/_rels/presentation.xml.rels"); ok {
 		mapped, err := ooxml.RelationshipMap(relXML, path.Dir("ppt/presentation.xml"))
 		if err != nil {
-			return inkbite.Result{}, err
+			return inkbite.Result{}, nil, err
 		}
 		relationships = mapped
 	}
 
 	slidePaths := orderedSlidePaths(presentation, relationships)
 	if len(slidePaths) == 0 {
-		return inkbite.Result{}, inkbite.UnsupportedFormatError{Info: info}
+		return inkbite.Result{}, nil, inkbite.UnsupportedFormatError{Info: info}
 	}
 
 	var (
-		parts []string
-		title string
+		parts    []string
+		title    string
+		warnings []inkbite.WarningRecord
 	)
 	for idx, slidePath := range slidePaths {
-		markdown, slideTitle, err := renderSlide(pkg, slidePath, idx+1)
+		markdown, slideTitle, warning, err := renderSlide(pkg, slidePath, idx+1)
 		if err != nil {
-			return inkbite.Result{}, err
+			return inkbite.Result{}, nil, err
+		}
+		if warning != nil {
+			warnings = append(warnings, *warning)
 		}
 		if strings.TrimSpace(markdown) == "" {
 			continue
@@ -119,13 +155,42 @@ func (c *Converter) Convert(
 	}
 
 	if len(parts) == 0 {
-		return inkbite.Result{}, inkbite.UnsupportedFormatError{Info: info}
+		return inkbite.Result{}, nil, inkbite.UnsupportedFormatError{Info: info}
 	}
 
 	return inkbite.Result{
 		Markdown: strings.Join(parts, "\n\n"),
 		Title:    title,
-	}, nil
+	}, warnings, nil
+}
+
+func pptxRequestContext(ctx context.Context, policy inkbite.IngestionPolicy) (context.Context, error) {
+	if _, ok := internalingestion.RequestBudgetFromContext(ctx); ok {
+		return ctx, nil
+	}
+	if policy == (inkbite.IngestionPolicy{}) {
+		policy = inkbite.DefaultIngestionPolicy()
+	}
+	budget, err := internalingestion.NewRequestBudget(pptxRequestLimits(policy))
+	if err != nil {
+		return nil, err
+	}
+	return internalingestion.WithRequestBudget(ctx, budget)
+}
+
+func pptxRequestLimits(policy inkbite.IngestionPolicy) internalingestion.Limits {
+	return internalingestion.Limits{
+		MaxSourceBytes:         policy.MaxSourceBytes,
+		MaxPrimaryBytes:        policy.MaxPrimaryBytes,
+		MaxArtifacts:           policy.MaxArtifacts,
+		MaxArtifactBytes:       policy.MaxArtifactBytes,
+		MaxTotalArtifactBytes:  policy.MaxTotalArtifactBytes,
+		MaxContainerEntries:    policy.MaxContainerEntries,
+		MaxContainerEntryBytes: policy.MaxContainerEntryBytes,
+		MaxExpandedBytes:       policy.MaxExpandedBytes,
+		MaxContainerDepth:      policy.MaxContainerDepth,
+		MaxExpansionRatio:      policy.MaxExpansionRatio,
+	}
 }
 
 func orderedSlidePaths(presentation *ooxml.Node, relationships map[string]string) []string {
@@ -151,20 +216,20 @@ func orderedSlidePaths(presentation *ooxml.Node, relationships map[string]string
 	return slides
 }
 
-func renderSlide(pkg *ooxml.Package, slidePath string, number int) (markdown string, title string, err error) {
+func renderSlide(pkg *ooxml.Package, slidePath string, number int) (markdown string, title string, warning *inkbite.WarningRecord, err error) {
 	slideXML, ok := pkg.ReadFile(slidePath)
 	if !ok {
-		return "", "", fmt.Errorf("pptx: missing slide %q", slidePath)
+		return "", "", nil, fmt.Errorf("pptx: missing slide %q", slidePath)
 	}
 
 	slide, err := ooxml.ParseNode(slideXML)
 	if err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
 
 	relationships, err := relationshipsForPart(pkg, slidePath)
 	if err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
 
 	spTree := findFirst(slide, "spTree")
@@ -183,11 +248,12 @@ func renderSlide(pkg *ooxml.Package, slidePath string, number int) (markdown str
 		}
 	}
 
-	if notes := renderNotes(pkg, relationships); strings.TrimSpace(notes) != "" {
+	notes, warning := renderNotes(pkg, relationships)
+	if strings.TrimSpace(notes) != "" {
 		parts = append(parts, "### Notes", notes)
 	}
 
-	return strings.Join(parts, "\n\n"), title, nil
+	return strings.Join(parts, "\n\n"), title, warning, nil
 }
 
 func relationshipsForPart(pkg *ooxml.Package, partPath string) (map[string]string, error) {
@@ -199,25 +265,34 @@ func relationshipsForPart(pkg *ooxml.Package, partPath string) (map[string]strin
 	return ooxml.RelationshipMap(relXML, path.Dir(partPath))
 }
 
-func renderNotes(pkg *ooxml.Package, relationships map[string]string) string {
+func renderNotes(pkg *ooxml.Package, relationships map[string]string) (string, *inkbite.WarningRecord) {
 	notesPath := findNotesPath(relationships)
 	if notesPath == "" {
-		return ""
+		return "", nil
 	}
 
 	notesXML, ok := pkg.ReadFile(notesPath)
 	if !ok {
-		return ""
+		return "", notesOmittedWarning(notesPath)
 	}
 
 	notes, err := ooxml.ParseNode(notesXML)
 	if err != nil {
-		return ""
+		return "", notesOmittedWarning(notesPath)
 	}
 
 	spTree := findFirst(notes, "spTree")
 	_, blocks := collectBlocks(spTree, map[string]string{}, true)
-	return strings.Join(blocks, "\n\n")
+	return strings.Join(blocks, "\n\n"), nil
+}
+
+func notesOmittedWarning(notesPath string) *inkbite.WarningRecord {
+	return &inkbite.WarningRecord{
+		Category:  "optional_extraction_failed",
+		Converter: "pptx",
+		Location:  notesPath,
+		Detail:    "notes omitted",
+	}
 }
 
 func findNotesPath(relationships map[string]string) string {

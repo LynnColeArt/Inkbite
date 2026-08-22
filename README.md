@@ -1,211 +1,88 @@
 # Inkbite
 
-## Abstract
+Inkbite is a Go library and command-line program that converts supported,
+text-heavy documents to deterministic Markdown. The library also exposes the
+additive `inkbite.ingestion/v1` envelope for callers that need exact source
+bytes, independently retainable derivatives, conversion provenance, stable
+warnings, and pure verification.
 
-Inkbite is a Go-native document-to-Markdown extraction system intended for
-retrieval, indexing, and large-language-model context preparation. The project
-investigates a deliberately constrained question: can a self-contained binary
-produce sufficiently useful surface representations of heterogeneous documents
-without relying on external executables, layout reconstruction, or
-format-specific overfitting?
+Inkbite favors useful structure over visual reconstruction. It is not a
+MarkItDown parity port, a sandbox, an OCR engine, or a durable storage system.
 
-The present answer pursued by Inkbite is pragmatic rather than maximalist.
-Inkbite prioritizes deterministic behavior, graceful degradation, and readable
-Markdown over visual fidelity. Its purpose is not to recreate the appearance of
-source documents, but to recover the structural signals most valuable for
-downstream reasoning systems: titles, headings, paragraphs, lists, links,
-tables, and section boundaries.
+## Security boundary
 
-## Research Aim
+Treat every source byte and every extracted value as untrusted content.
+Conversion parses attacker-controlled files inside the caller's process; it
+does not make Markdown safe to render as HTML, execute embedded content, or
+follow links. Apply the host application's escaping, content-security, and
+retention policies after conversion.
 
-Inkbite is guided by the following aims:
+Remote acquisition is disabled by default. Enabling it requires both explicit
+request authority and a caller-supplied HTTP transport. Normal conversion does
+not install components, download models or schemas, run OCR, invoke inference,
+or follow derivative references.
 
-1. To provide a single Go library and CLI for converting common text-heavy
-   document formats into normalized Markdown.
-2. To remain self-contained as a deployable artifact, avoiding dependence on
-   external binaries for core extraction behavior.
-3. To preserve useful semantic structure while accepting reduced fidelity on
-   layout-sensitive formats.
-4. To support deterministic and typed failure behavior suitable for production
-   ingestion pipelines.
-5. To establish a modular converter architecture that can be extended without
-   weakening the core system contract.
+A `sha256:<hex>` identity proves that bytes match a recorded digest. It does
+not prove authorship, origin, safety, trust, or permission to execute or fetch
+anything.
 
-## Working Hypotheses
+## Implemented formats
 
-The project proceeds from three practical hypotheses:
+The built-in registry contains `ipynb`, `xlsx`, `xls`, `docx`, `pptx`, `pdf`,
+`csv`, `epub`, `rss`, `zip`, `html`, and `text` converters. JSON and generic
+XML use the text path unless a more specific converter accepts them.
 
-1. For many retrieval-oriented workloads, useful Markdown is more valuable than
-   visually faithful reproduction.
-2. A conservative, self-contained implementation can cover a substantial share
-   of common ingest needs while remaining easier to deploy and reason about.
-3. Reduced-scope extraction for complex formats such as DOCX and PDF can still
-   be operationally successful if headings, paragraphs, links, and simple
-   tables are preserved with reasonable consistency.
+DOCX, PPTX, PDF, and XLS support is intentionally reduced in scope. There is
+no OCR, full layout reconstruction, chart understanding, image captioning,
+audio transcription, or automatic external fallback in the conversion path.
 
-## System Overview
-
-Inkbite accepts multiple input forms, resolves them into a seekable stream,
-infers type information, routes the stream through a priority-ordered converter
-registry, and applies a final normalization pass before returning Markdown.
-
-Figure 1. End-to-end conversion pipeline.
-
-```mermaid
-flowchart LR
-    A["Input Source<br/>path, bytes, io.Reader, URI"]
-    B["Source Resolution<br/>buffering and URI handling"]
-    C["StreamInfo Enrichment<br/>user hints, extension, sniffing"]
-    D["Converter Registry<br/>priority ordered"]
-    E["Selected Converter"]
-    F["Markdown Normalization"]
-    G["Result<br/>Markdown and metadata"]
-
-    A --> B --> C --> D --> E --> F --> G
-```
-
-The system is organized around a small public API and a set of focused
-converters. This architecture is intended to keep the engine stable while
-allowing new format support to be added incrementally and with clear failure
-boundaries.
-
-## Design Principles
-
-### 1. Determinism over fidelity
-
-Inkbite prefers reproducible extraction to high-variance heuristics. When a
-format admits only partial recovery, the project favors incomplete but readable
-Markdown over brittle layout emulation.
-
-### 2. Self-contained execution
-
-The core project is designed to operate without required external executables.
-This principle improves portability, simplifies deployment, and keeps failure
-modes legible.
-
-### 3. Useful structure over visual appearance
-
-The most important output properties are semantic rather than visual. The
-system therefore focuses on preserving headings, paragraphs, links, lists,
-tables, and clear section boundaries.
-
-### 4. Graceful degradation
-
-Unsupported or malformed inputs should fail clearly rather than crash. Complex
-formats may degrade to simpler surface text when higher-fidelity recovery is
-not justified.
-
-### 5. Modular extensibility
-
-Each converter is intended to be independently understandable, testable, and
-replaceable without distorting the engine contract.
-
-## Implemented Scope
-
-The repository currently includes the following built-in converter set:
-
-| Format | Status | Notes |
-| --- | --- | --- |
-| Plain text | Implemented | Normalized text output |
-| HTML | Implemented | DOM-to-Markdown conversion |
-| CSV | Implemented | Markdown table output |
-| JSON and generic XML | Implemented via text path | Treated as text unless specialized routing applies |
-| RSS and Atom | Implemented | Feed and entry extraction |
-| IPYNB | Implemented | Markdown and code-cell extraction |
-| ZIP | Implemented | Recursive conversion of supported entries |
-| EPUB | Implemented | Metadata plus spine extraction |
-| XLSX | Implemented | Sheet-wise Markdown table output |
-| DOCX | Implemented, reduced scope | Headings, paragraphs, links, simple tables |
-| PDF | Implemented, reduced scope | Pure-Go text extraction with best-effort table heuristics |
-| PPTX | Implemented, reduced scope | Slide titles, body text, notes, simple tables |
-| XLS | Implemented, basic scope | Legacy workbook tables with formatted dates and numerics; formula handling remains limited |
-
-## Explicit Non-Goals for the Current MVP
-
-The present project does not attempt to provide:
-
-- exact parity with Python MarkItDown
-- OCR
-- full PDF layout reconstruction
-- DOCX comments, equations, or track-changes support
-- PowerPoint chart or image-caption intelligence
-- Outlook `.msg` support
-- audio transcription
-- multimodal image captioning
-- plugin infrastructure in the MVP
-- remote extraction backends as part of the core self-contained binary
-
-## Current Repository State
-
-At the current stage of development, the project should be understood as a
-strong early MVP rather than a finished release artifact.
-
-The repository presently has:
-
-- a working Go module and CLI
-- a functioning converter registry and dispatch engine
-- support for local files, `[]byte`, `io.Reader`, `io.ReadSeeker`, `file:` URIs,
-  `data:` URIs, and opt-in `http(s)` sources
-- reduced-scope PPTX extraction for slide titles, body text, notes, and simple tables
-- a self-contained PDF path implemented in pure Go
-- basic legacy XLS extraction with formatted date and numeric rendering
-- a passing Go test suite across the currently implemented packages
-- build automation, multi-platform CI coverage, and tagged release packaging
-
-The repository does not yet have:
-
-- broad real-world legacy XLS regression coverage beyond the current basic scope
-- broad malformed-input and performance hardening
-- broader publication-oriented documentation
-
-## Operational Interface
-
-### Build
+## Build and test
 
 ```bash
 make build
-```
-
-### Verify
-
-```bash
 make ci
 ```
 
-## Managed Components
-
-The CLI now includes a managed-component foundation for optional capabilities:
+The repository's required Go checks can also be run directly:
 
 ```bash
-inkbite components list
-inkbite doctor
-inkbite config show
-inkbite install ocr
-inkbite install ocr --provider paddleocr
+go test ./...
+go test -race ./...
+go vet ./...
 ```
 
-At the current stage, `install ocr` installs and validates the managed OCR
-helper foundation and config path. The default `builtin` provider stays light
-and fast for development. An experimental `paddleocr` provider is also
-available for CPU-oriented setup through a managed Python `venv`, with streamed
-install progress, pinned Python compatibility fixes, and a quieter self-test
-path. OCR-backed document conversion wiring remains follow-on work.
+These commands are exercised by the repository CI and contract gates.
 
-### Example CLI Usage
+## Source-only releases
 
-Convert a local file:
+The release workflow publishes deterministic archives of the exact committed
+tracked-source manifest plus `checksums.txt`. It does not publish executables,
+object files, vendored modules, module-cache content, or dependency source.
+Local and CI binary builds verify compilation only; they are not publication
+inputs. Run `make dist VERSION=<version>` to produce
+`inkbite_<version>_source.tar.gz` and `inkbite_<version>_source.zip` through the
+same canonical packaging authority used by CI and tag releases.
+
+Default Inkbite binaries link GPL-3.0-only xlsReader, are not MIT-only, and are not qualified for redistribution by this workflow.
+
+A binary-release strategy requires a separate specification and independent
+license review that closes the applicable GPL and transitive-license
+obligations.
+
+## CLI
+
+Convert a local path:
 
 ```bash
 inkbite ./report.pdf
 ```
 
-Read from standard input:
+The default success contract is Markdown on stdout, with one trailing newline
+when needed, empty stderr, and exit status zero. It never emits an envelope,
+provenance metadata, or binary artifacts implicitly. This snapshot is locked
+by `TestRunConvertDefaultPathBehavior`.
 
-```bash
-cat notes.html | inkbite
-```
-
-Write output to a file:
+Write Markdown to a file:
 
 ```bash
 inkbite -o output.md ./paper.docx
@@ -214,85 +91,176 @@ inkbite -o output.md ./paper.docx
 Provide explicit type hints:
 
 ```bash
-inkbite --mime-type text/plain --charset utf-8 ./sample.dat
+inkbite --extension .xml --mime-type text/xml --charset utf-8 ./sample.dat
 ```
 
-Allow remote retrieval explicitly:
+The CLI exposes an explicit remote opt-in flag:
 
 ```bash
 inkbite --http https://example.org/feed.xml
 ```
 
-List registered converters:
+Without `--http`, an HTTP or HTTPS target fails before a request is issued.
+The standalone CLI does not expose the caller-supplied transport capability
+required by the hardened library policy, so `--http` alone also fails closed;
+hosts that need remote ingestion use `WithHTTPClient` in the Go API.
+The CLI snapshots for success, unsupported input, malformed input, cancellation,
+local paths, and disabled remote access live in
+[`cmd/inkbite/main_test.go`](cmd/inkbite/main_test.go).
+
+List the registered converters:
 
 ```bash
 inkbite --list-formats
 ```
 
-## Codex Skill
+## Legacy Go API
 
-The repository ships a Codex skill at [skills/inkbite/SKILL.md](skills/inkbite/SKILL.md).
-Use it when an agent should learn the intended Inkbite workflow without requiring
-an MCP server.
-
-Install it into the default local skill directory with:
-
-```bash
-mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
-cp -R ./skills/inkbite "${CODEX_HOME:-$HOME/.codex}/skills/"
-```
-
-## Library Use
+The original two-field `Result`, `Converter`, registration methods, and every
+`Convert*` entry point remain source compatible:
 
 ```go
 package main
 
 import (
-    "context"
-    "fmt"
+	"context"
+	"fmt"
 
-    inkbite "github.com/LynnColeArt/Inkbite"
-    "github.com/LynnColeArt/Inkbite/builtins"
+	inkbite "github.com/LynnColeArt/Inkbite"
+	"github.com/LynnColeArt/Inkbite/builtins"
 )
 
 func main() {
-    engine := inkbite.New()
-    builtins.RegisterDefaultConverters(engine)
+	engine := inkbite.New()
+	builtins.RegisterDefaultConverters(engine)
 
-    result, err := engine.Convert(context.Background(), "./document.pdf", nil, inkbite.ConvertOptions{})
-    if err != nil {
-        panic(err)
-    }
-
-    fmt.Println(result.Markdown)
+	result, err := engine.Convert(
+		context.Background(),
+		"./document.pdf",
+		nil,
+		inkbite.ConvertOptions{},
+	)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(result.Markdown)
 }
 ```
 
-## Development Trajectory
+The external-package compile fixture in
+[`test/contract/legacy_compatibility_test.go`](test/contract/legacy_compatibility_test.go)
+also constructs `Result` positionally, compares it with `==`, uses it as a map
+key, registers a custom legacy-only converter, and calls `Convert`,
+`ConvertPath`, `ConvertReader`, and `ConvertURI`.
 
-The near-term trajectory of the project is to consolidate the current engine,
-deepen hardening across the implemented formats, and formalize release-ready
-packaging and documentation.
+## Detailed ingestion API
 
-Figure 2. Development trajectory.
+Use `Engine.Ingest` when the host needs retained source and output evidence:
 
-```mermaid
-flowchart LR
-    A["Foundation<br/>engine, sources, normalization"]
-    B["Implemented Converters<br/>text, html, csv, rss, ipynb, zip, epub, xlsx, xls, docx, pptx, pdf"]
-    C["Hardening<br/>fixtures, malformed input, benchmarks"]
-    D["Release Readiness<br/>docs, packaging, versioning"]
-    E["Broader Coverage<br/>future extensions and deeper format fidelity"]
+```go
+policy := inkbite.DefaultIngestionPolicy()
+policy.Remote.Enabled = false
 
-    A --> B --> C --> D --> E
+envelope, err := engine.Ingest(
+	ctx,
+	sourceBytes,
+	&inkbite.StreamInfo{Filename: "brief.pdf"},
+	inkbite.IngestOptions{Policy: policy},
+)
+if err != nil {
+	return err
+}
+if report := inkbite.VerifyEnvelope(envelope); !report.Valid {
+	return fmt.Errorf("invalid Inkbite envelope: %v", report.Findings)
+}
 ```
 
-## What Inkbite Hopes to Achieve
+This excerpt is exercised through the public API by
+`TestDetailedIngestionAdaptsLegacyConverterAndVerificationIsPure` and
+`TestGoEnvelopeRoundTripsThroughApprovedJSONSchema`.
 
-Inkbite aims to become a reliable scholarly and production-oriented reference
-for self-contained document ingestion in Go. Its ambition is modest but useful:
-to show that a carefully scoped extractor can be operationally valuable without
-becoming opaque, dependency-heavy, or fragile. If successful, the project will
-offer a principled foundation for text-oriented ingest workflows in which
-clarity, determinism, and deployability matter more than maximal visual
-fidelity.
+`VerifyEnvelope` is pure: it performs no I/O, conversion, persistence,
+component call, or network request. Success owns copies of source and output
+bytes. Failure returns the zero envelope and an `errors.Is`-compatible public
+category.
+
+### Default ingestion policy
+
+`DefaultIngestionPolicy` returns these materialized values:
+
+| Constant | Value |
+| --- | ---: |
+| `DefaultMaxSourceBytes` | 32 MiB |
+| `DefaultMaxPrimaryBytes` | 32 MiB |
+| `DefaultMaxArtifacts` | 256 |
+| `DefaultMaxArtifactBytes` | 8 MiB |
+| `DefaultMaxTotalArtifactBytes` | 32 MiB |
+| `DefaultMaxContainerEntries` | 256 |
+| `DefaultMaxContainerEntryBytes` | 8 MiB |
+| `DefaultMaxExpandedBytes` | 32 MiB |
+| `DefaultMaxContainerDepth` | 4 |
+| `DefaultMaxExpansionRatio` | 1000 |
+| `Remote.Enabled` | `false` |
+| `Component` | empty |
+
+A completely zero `IngestOptions.Policy` materializes these defaults. A
+partially populated policy is not merged with defaults; it is validated as the
+caller's explicit policy.
+
+### Artifacts, references, and warnings
+
+The primary artifact is UTF-8 Markdown. Derived artifacts are separately owned
+byte values with deterministic IDs, identities, relations, and ordering. A
+Markdown reference such as
+`inkbite-artifact:artifact-000001` resolves only against the same envelope; it
+does not grant filesystem or network authority.
+
+Warnings expose permitted degradation without raw payloads or backend error
+text. For example, a malformed referenced PPTX notes part is omitted with the
+stable `optional_extraction_failed` category and its canonical archive-member
+location. Consumers should retain and inspect ordered warnings with the rest of
+the envelope.
+
+### Host-owned durability sequence
+
+Inkbite returns values; the host owns persistence and cleanup. The required
+sequence is:
+
+`ingest -> verify -> persist -> discard -> reload -> verify`
+
+Persist source bytes, primary Markdown, every derivative, envelope metadata,
+and a host receipt atomically. Discard disposable conversion state only after
+the host reloads the retained values and `VerifyEnvelope` succeeds again.
+Inkbite does not choose a database, storage path, retention period, or deletion
+time.
+
+## Managed component commands
+
+The CLI ships explicit component-management commands:
+
+```bash
+inkbite components list
+inkbite config show
+inkbite doctor
+inkbite install ocr
+```
+
+These tested commands manage and inspect installation state. The separately
+documented `--provider paddleocr` option is an explicit installer path, not a
+conversion example. Component commands do not add OCR to
+`ConvertOptions`, and normal conversion never invokes an installed OCR helper.
+The explicit PaddleOCR install command creates a Python environment and may
+download its pinned packages; ordinary conversion never runs that install
+path. See [INKBITE_COMPONENTS_SPEC.md](INKBITE_COMPONENTS_SPEC.md) for the
+shipped boundary.
+
+## Contract and adoption records
+
+- [Public detailed-ingestion API](kitty-specs/inkbite-ingestion-contract-01M0M3HW/contracts/public-api.md)
+- [Envelope v1 JSON Schema](kitty-specs/inkbite-ingestion-contract-01M0M3HW/contracts/ingestion-envelope-v1.schema.json)
+- [Verified-retention quickstart](kitty-specs/inkbite-ingestion-contract-01M0M3HW/quickstart.md)
+- [Adopted components and license obligations](ADOPTED_COMPONENTS.md)
+
+Inkbite's project-authored source is licensed under [MIT](LICENSE). Direct
+dependencies retain their own licenses and distribution obligations; consult
+`ADOPTED_COMPONENTS.md` before building or distributing a combined work.

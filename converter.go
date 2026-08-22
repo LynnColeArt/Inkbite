@@ -13,3 +13,16 @@ type Converter interface {
 	Accepts(ctx context.Context, r io.ReadSeeker, info StreamInfo, opts ConvertOptions) bool
 	Convert(ctx context.Context, r io.ReadSeeker, info StreamInfo, opts ConvertOptions) (Result, error)
 }
+
+// DetailedConverter is an optional additive capability. Implementing the
+// legacy Converter interface remains sufficient for registration and use.
+type DetailedConverter interface {
+	Converter
+	ConvertDetailed(
+		ctx context.Context,
+		r io.ReadSeeker,
+		info StreamInfo,
+		opts ConvertOptions,
+		policy IngestionPolicy,
+	) (DetailedConversion, error)
+}

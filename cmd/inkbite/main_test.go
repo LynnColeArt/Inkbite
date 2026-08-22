@@ -30,6 +30,103 @@ func TestRunConvertDefaultPathBehavior(t *testing.T) {
 	if got := stdout.String(); got != "hello world\n" {
 		t.Fatalf("expected converted stdout, got %q", got)
 	}
+	if got := stderr.String(); got != "" {
+		t.Fatalf("expected empty stderr, got %q", got)
+	}
+}
+
+func TestRunConvertFailureSnapshots(t *testing.T) {
+	dir := t.TempDir()
+	unsupportedPath := filepath.Join(dir, "unsupported.bin")
+	if err := os.WriteFile(unsupportedPath, []byte{0, 1, 2, 3}, 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+	malformedPath := filepath.Join(dir, "malformed.epub")
+	if err := os.WriteFile(malformedPath, []byte{'P', 'K', 3, 4, 0, 0}, 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	tests := []struct {
+		name       string
+		args       []string
+		wantStderr string
+	}{
+		{name: "unsupported", args: []string{unsupportedPath}, wantStderr: "unsupported format\n"},
+		{name: "malformed", args: []string{malformedPath}, wantStderr: "converter-run: malformed input\n"},
+		{name: "remote disabled", args: []string{"https://example.test/document"}, wantStderr: "remote fetching is disabled\n"},
+		{name: "remote lacks caller transport", args: []string{"--http", "https://example.test/document"}, wantStderr: "remote-read: ingestion integrity failure\n"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var stdout bytes.Buffer
+			var stderr bytes.Buffer
+			code := run(test.args, &stdout, &stderr, runtimeDeps{version: "test"})
+			if code != 1 {
+				t.Fatalf("run() code = %d, want 1", code)
+			}
+			if got := stdout.String(); got != "" {
+				t.Fatalf("run() stdout = %q, want empty", got)
+			}
+			if got := stderr.String(); got != test.wantStderr {
+				t.Fatalf("run() stderr = %q, want %q", got, test.wantStderr)
+			}
+		})
+	}
+}
+
+func TestRunConvertDocumentedOptions(t *testing.T) {
+	dir := t.TempDir()
+	inputPath := filepath.Join(dir, "sample.dat")
+	if err := os.WriteFile(inputPath, []byte("documented options"), 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	t.Run("type hints", func(t *testing.T) {
+		var stdout bytes.Buffer
+		var stderr bytes.Buffer
+		code := run([]string{"--extension", ".xml", "--mime-type", "text/xml", "--charset", "utf-8", inputPath}, &stdout, &stderr, runtimeDeps{version: "test"})
+		if code != 0 || stdout.String() != "documented options\n" || stderr.String() != "" {
+			t.Fatalf("hinted run = code %d stdout %q stderr %q", code, stdout.String(), stderr.String())
+		}
+	})
+
+	t.Run("output file", func(t *testing.T) {
+		outputPath := filepath.Join(dir, "output.md")
+		var stdout bytes.Buffer
+		var stderr bytes.Buffer
+		code := run([]string{"-o", outputPath, inputPath}, &stdout, &stderr, runtimeDeps{version: "test"})
+		if code != 0 || stdout.String() != "" || stderr.String() != "" {
+			t.Fatalf("output run = code %d stdout %q stderr %q", code, stdout.String(), stderr.String())
+		}
+		content, err := os.ReadFile(outputPath)
+		if err != nil {
+			t.Fatalf("ReadFile() error = %v", err)
+		}
+		if got, want := string(content), "documented options"; got != want {
+			t.Fatalf("output file = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("list formats", func(t *testing.T) {
+		var stdout bytes.Buffer
+		var stderr bytes.Buffer
+		code := run([]string{"--list-formats"}, &stdout, &stderr, runtimeDeps{version: "test"})
+		want := "ipynb\t(priority 10)\n" +
+			"docx\t(priority 12)\n" +
+			"pptx\t(priority 13)\n" +
+			"pdf\t(priority 14)\n" +
+			"xlsx\t(priority 15)\n" +
+			"xls\t(priority 16)\n" +
+			"csv\t(priority 20)\n" +
+			"epub\t(priority 25)\n" +
+			"rss\t(priority 30)\n" +
+			"zip\t(priority 35)\n" +
+			"html\t(priority 40)\n" +
+			"text\t(priority 100)\n"
+		if code != 0 || stdout.String() != want || stderr.String() != "" {
+			t.Fatalf("list formats = code %d stdout %q stderr %q", code, stdout.String(), stderr.String())
+		}
+	})
 }
 
 func TestRunConvertRejectsInvalidTimeout(t *testing.T) {
@@ -50,7 +147,7 @@ func TestRunConversionReturnsContextError(t *testing.T) {
 	cancel()
 
 	release := make(chan struct{})
-	_, err := runConversion(ctx, func(context.Context) (inkbite.Result, error) {
+	result, err := runConversion(ctx, func(context.Context) (inkbite.Result, error) {
 		<-release
 		return inkbite.Result{Markdown: "late"}, nil
 	})
@@ -58,6 +155,28 @@ func TestRunConversionReturnsContextError(t *testing.T) {
 
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+	if result != (inkbite.Result{}) {
+		t.Fatalf("cancelled runConversion() result = %+v, want zero Result", result)
+	}
+}
+
+func TestRunConvertCancellationSnapshot(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "cancelled.txt")
+	if err := os.WriteFile(path, bytes.Repeat([]byte("cancel me\n"), 1024), 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	code := run([]string{"--timeout", "1ns", path}, &stdout, &stderr, runtimeDeps{version: "test"})
+	if code != 1 {
+		t.Fatalf("run() code = %d, want 1", code)
+	}
+	if got := stdout.String(); got != "" {
+		t.Fatalf("run() stdout = %q, want empty", got)
+	}
+	if got, want := stderr.String(), "context deadline exceeded\n"; got != want {
+		t.Fatalf("run() stderr = %q, want %q", got, want)
 	}
 }
 

@@ -9,6 +9,8 @@ import (
 	"github.com/xuri/excelize/v2"
 
 	"github.com/LynnColeArt/Inkbite"
+	internalingestion "github.com/LynnColeArt/Inkbite/internal/ingestion"
+	"github.com/LynnColeArt/Inkbite/internal/ooxml"
 )
 
 const priority = 15
@@ -54,21 +56,57 @@ func (c *Converter) Accepts(
 }
 
 func (c *Converter) Convert(
-	_ context.Context,
+	ctx context.Context,
+	r io.ReadSeeker,
+	info inkbite.StreamInfo,
+	opts inkbite.ConvertOptions,
+) (inkbite.Result, error) {
+	return c.convert(ctx, r, info, opts, inkbite.DefaultIngestionPolicy())
+}
+
+// ConvertDetailed validates the original bounded archive with the caller's
+// request ledger before handing those exact bytes to excelize.
+func (c *Converter) ConvertDetailed(
+	ctx context.Context,
+	r io.ReadSeeker,
+	info inkbite.StreamInfo,
+	opts inkbite.ConvertOptions,
+	policy inkbite.IngestionPolicy,
+) (inkbite.DetailedConversion, error) {
+	result, err := c.convert(ctx, r, info, opts, policy)
+	return inkbite.DetailedConversion{Result: result}, err
+}
+
+func (c *Converter) convert(
+	ctx context.Context,
 	r io.ReadSeeker,
 	_ inkbite.StreamInfo,
 	_ inkbite.ConvertOptions,
+	policy inkbite.IngestionPolicy,
 ) (inkbite.Result, error) {
+	ctx, err := xlsxRequestContext(ctx, policy)
+	if err != nil {
+		return inkbite.Result{}, err
+	}
+	if err := internalingestion.Checkpoint(ctx); err != nil {
+		return inkbite.Result{}, err
+	}
 	if _, err := r.Seek(0, io.SeekStart); err != nil {
 		return inkbite.Result{}, err
 	}
 
-	data, err := io.ReadAll(r)
+	data, err := internalingestion.ReadBounded(ctx, r, policy.MaxSourceBytes)
 	if err != nil {
 		return inkbite.Result{}, err
 	}
+	if _, err := ooxml.Open(ctx, data.Bytes); err != nil {
+		return inkbite.Result{}, err
+	}
+	if err := internalingestion.Checkpoint(ctx); err != nil {
+		return inkbite.Result{}, err
+	}
 
-	workbook, err := excelize.OpenReader(bytes.NewReader(data))
+	workbook, err := excelize.OpenReader(bytes.NewReader(data.Bytes))
 	if err != nil {
 		return inkbite.Result{}, err
 	}
@@ -78,6 +116,9 @@ func (c *Converter) Convert(
 
 	var parts []string
 	for _, sheet := range workbook.GetSheetList() {
+		if err := internalingestion.Checkpoint(ctx); err != nil {
+			return inkbite.Result{}, err
+		}
 		rows, err := workbook.GetRows(sheet)
 		if err != nil {
 			return inkbite.Result{}, err
@@ -93,6 +134,35 @@ func (c *Converter) Convert(
 	return inkbite.Result{
 		Markdown: strings.Join(parts, "\n\n"),
 	}, nil
+}
+
+func xlsxRequestContext(ctx context.Context, policy inkbite.IngestionPolicy) (context.Context, error) {
+	if _, ok := internalingestion.RequestBudgetFromContext(ctx); ok {
+		return ctx, nil
+	}
+	if policy == (inkbite.IngestionPolicy{}) {
+		policy = inkbite.DefaultIngestionPolicy()
+	}
+	budget, err := internalingestion.NewRequestBudget(xlsxRequestLimits(policy))
+	if err != nil {
+		return nil, err
+	}
+	return internalingestion.WithRequestBudget(ctx, budget)
+}
+
+func xlsxRequestLimits(policy inkbite.IngestionPolicy) internalingestion.Limits {
+	return internalingestion.Limits{
+		MaxSourceBytes:         policy.MaxSourceBytes,
+		MaxPrimaryBytes:        policy.MaxPrimaryBytes,
+		MaxArtifacts:           policy.MaxArtifacts,
+		MaxArtifactBytes:       policy.MaxArtifactBytes,
+		MaxTotalArtifactBytes:  policy.MaxTotalArtifactBytes,
+		MaxContainerEntries:    policy.MaxContainerEntries,
+		MaxContainerEntryBytes: policy.MaxContainerEntryBytes,
+		MaxExpandedBytes:       policy.MaxExpandedBytes,
+		MaxContainerDepth:      policy.MaxContainerDepth,
+		MaxExpansionRatio:      policy.MaxExpansionRatio,
+	}
 }
 
 func renderTable(rows [][]string) string {

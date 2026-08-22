@@ -200,7 +200,7 @@ references:
 - id: TACTIC:acceptance-test-first
   kind: tactic
   title: Acceptance Test Driven Development (ATDD)
-  summary: Anchor implementation work in externally observable behavior before 
+  summary: Anchor implementation work in externally observable behavior before
     internal coding begins.
   source_path: ''
   local_path: _LIBRARY/tactic-acceptance-test-first.md
@@ -275,7 +275,7 @@ references:
 - id: TACTIC:change-apply-smallest-viable-diff
   kind: tactic
   title: Change Apply Smallest Viable Diff
-  summary: Introduce changes using the smallest possible modification that 
+  summary: Introduce changes using the smallest possible modification that
     achieves the stated goal, minimising unintended side effects.
   source_path: ''
   local_path: _LIBRARY/tactic-change-apply-smallest-viable-diff.md
@@ -295,7 +295,7 @@ references:
 - id: TACTIC:code-review-incremental
   kind: tactic
   title: Incremental Code Review
-  summary: Review a change set to identify correctness, structural, and 
+  summary: Review a change set to identify correctness, structural, and
     architectural risks without rewriting or expanding scope. Formulate feedback
     as observations and questions, not instructions.
   source_path: ''
@@ -407,8 +407,8 @@ references:
 - id: TACTIC:glossary-curation-interview
   kind: tactic
   title: Glossary Curation Interview
-  summary: Systematically expand a living glossary through structured HiC-led 
-    curation rounds, ensuring all new terms are clear, well-grouped, and 
+  summary: Systematically expand a living glossary through structured HiC-led
+    curation rounds, ensuring all new terms are clear, well-grouped, and
     approved before inclusion.
   source_path: ''
   local_path: _LIBRARY/tactic-glossary-curation-interview.md
@@ -454,7 +454,7 @@ references:
 - id: TACTIC:premortem-risk-identification
   kind: tactic
   title: Premortem Risk Identification
-  summary: Proactively surface failure modes for a plan or decision by 
+  summary: Proactively surface failure modes for a plan or decision by
     deliberately attempting to sabotage it before execution.
   source_path: ''
   local_path: _LIBRARY/tactic-premortem-risk-identification.md
@@ -471,36 +471,36 @@ references:
 - id: TACTIC:quality-gate-verification
   kind: tactic
   title: Quality Gate Verification
-  summary: Verify the relevant test and static validation gates for a change 
-    before review handoff and distinguish introduced failures from pre-existing 
+  summary: Verify the relevant test and static validation gates for a change
+    before review handoff and distinguish introduced failures from pre-existing
     debt.
   source_path: ''
   local_path: _LIBRARY/tactic-quality-gate-verification.md
 - id: TACTIC:refactoring-conditional-to-strategy
   kind: tactic
   title: Refactoring Conditional to Strategy
-  summary: Replace algorithm-selection conditionals with strategy 
+  summary: Replace algorithm-selection conditionals with strategy
     implementations behind a stable interface.
   source_path: ''
   local_path: _LIBRARY/tactic-refactoring-conditional-to-strategy.md
 - id: TACTIC:refactoring-guard-clauses-before-polymorphism
   kind: tactic
   title: Refactoring Guard Clauses Before Polymorphism
-  summary: Flatten nested branch pyramids into ordered guard clauses before 
+  summary: Flatten nested branch pyramids into ordered guard clauses before
     extracting polymorphic behavior.
   source_path: ''
   local_path: _LIBRARY/tactic-refactoring-guard-clauses-before-polymorphism.md
 - id: TACTIC:refactoring-strangler-fig
   kind: tactic
   title: Refactoring Strangler Fig
-  summary: Replace existing functionality incrementally by running a new 
+  summary: Replace existing functionality incrementally by running a new
     implementation alongside the old and rerouting behavior step by step.
   source_path: ''
   local_path: _LIBRARY/tactic-refactoring-strangler-fig.md
 - id: TACTIC:review-intent-and-risk-first
   kind: tactic
   title: Review Intent and Risk First
-  summary: Review work by first understanding intent and surfacing risks before 
+  summary: Review work by first understanding intent and surfacing risks before
     suggesting changes or solutions.
   source_path: ''
   local_path: _LIBRARY/tactic-review-intent-and-risk-first.md
@@ -548,23 +548,23 @@ references:
 - id: TACTIC:tdd-red-green-refactor
   kind: tactic
   title: Test Driven Development (TDD)
-  summary: Enforce short, verifiable coding loops that improve design while 
+  summary: Enforce short, verifiable coding loops that improve design while
     keeping behavior safe.
   source_path: ''
   local_path: _LIBRARY/tactic-tdd-red-green-refactor.md
 - id: TACTIC:test-boundaries-by-responsibility
   kind: tactic
   title: Test Boundaries by Functional Responsibility
-  summary: Determine test scope by identifying which components are directly 
-    responsible for the behavior under test, rather than following structural 
-    layer boundaries. Reduces brittle tests while ensuring meaningful 
+  summary: Determine test scope by identifying which components are directly
+    responsible for the behavior under test, rather than following structural
+    layer boundaries. Reduces brittle tests while ensuring meaningful
     validation.
   source_path: ''
   local_path: _LIBRARY/tactic-test-boundaries-by-responsibility.md
 - id: TACTIC:test-minimisation
   kind: tactic
   title: Test Minimisation
-  summary: Remove redundant tests while preserving full behavioral coverage, 
+  summary: Remove redundant tests while preserving full behavioral coverage,
     keeping the suite fast and easy to maintain.
   source_path: ''
   local_path: _LIBRARY/tactic-test-minimisation.md
@@ -599,7 +599,7 @@ references:
 - id: TACTIC:zombies-tdd
   kind: tactic
   title: ZOMBIES TDD
-  summary: Drive implementation through tiny behavior increments using failing 
+  summary: Drive implementation through tiny behavior increments using failing
     tests to control complexity.
   source_path: ''
   local_path: _LIBRARY/tactic-zombies-tdd.md
@@ -645,7 +645,7 @@ references:
 - id: TOOLGUIDE:efficient-local-tooling
   kind: toolguide
   title: Efficient Local Tooling
-  summary: Operation-oriented guidance for using efficient local tools during 
+  summary: Operation-oriented guidance for using efficient local tools during
     repository work.
   source_path: ''
   local_path: _LIBRARY/toolguide-efficient-local-tooling.md

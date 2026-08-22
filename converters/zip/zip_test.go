@@ -4,13 +4,16 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/LynnColeArt/Inkbite"
 	"github.com/LynnColeArt/Inkbite/builtins"
+	zipconv "github.com/LynnColeArt/Inkbite/converters/zip"
 	"github.com/LynnColeArt/Inkbite/internal/testutil"
 )
 
@@ -24,6 +27,12 @@ func TestZIPConversionFixture(t *testing.T) {
 	}, inkbite.ConvertOptions{})
 	if err != nil {
 		t.Fatalf("Convert() error = %v", err)
+	}
+	want := "Content from zip file `bundle.zip`\n\n" +
+		"## File: data.csv\n\n| name | age |\n| --- | --- |\n| Ada | 30 |\n\n" +
+		"## File: notes.txt\n\nhello from zip"
+	if result.Markdown != want {
+		t.Fatalf("Convert() markdown = %q, want exact fixture %q", result.Markdown, want)
 	}
 
 	for _, fragment := range []string{
@@ -75,7 +84,7 @@ func TestZIPRejectsTooManyEntries(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected archive entry limit error")
 	}
-	if !strings.Contains(err.Error(), "entry limit") {
+	if !errors.Is(err, inkbite.ErrLimitExceeded) {
 		t.Fatalf("expected entry limit error, got %v", err)
 	}
 }
@@ -105,9 +114,50 @@ func TestZIPRejectsDeeplyNestedArchives(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected recursion depth error")
 	}
-	if !strings.Contains(err.Error(), "recursion depth") {
+	if !errors.Is(err, inkbite.ErrLimitExceeded) {
 		t.Fatalf("expected recursion depth error, got %v", err)
 	}
+}
+
+func TestZIPDirectLegacyConversionUsesBoundedAuthorityAndLabels(t *testing.T) {
+	t.Parallel()
+
+	engine := inkbite.New()
+	builtins.RegisterDefaultConverters(engine)
+	converter := zipconv.New(engine)
+	archive := buildZIP(t, []zipMember{{name: "note.txt", body: []byte("direct")}})
+	tests := []struct {
+		name string
+		info inkbite.StreamInfo
+		want string
+	}{
+		{name: "URL", info: inkbite.StreamInfo{Extension: ".zip", URL: "https://example.test/bundle.zip"}, want: "https://example.test/bundle.zip"},
+		{name: "local path", info: inkbite.StreamInfo{Extension: ".zip", LocalPath: "fixtures/bundle.zip"}, want: "fixtures/bundle.zip"},
+		{name: "default", info: inkbite.StreamInfo{Extension: ".zip"}, want: "archive.zip"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := converter.Convert(context.Background(), bytes.NewReader(archive), tc.info, inkbite.ConvertOptions{})
+			if err != nil {
+				t.Fatalf("Convert() error = %v", err)
+			}
+			if !strings.Contains(result.Markdown, "`"+tc.want+"`") || !strings.Contains(result.Markdown, "direct") {
+				t.Fatalf("Convert() markdown = %q, want label %q and member", result.Markdown, tc.want)
+			}
+		})
+	}
+
+	_, err := converter.Convert(context.Background(), failingZIPReadSeeker{}, inkbite.StreamInfo{Extension: ".zip"}, inkbite.ConvertOptions{})
+	if !errors.Is(err, inkbite.ErrIntegrityFailure) {
+		t.Fatalf("Convert() seek error = %v, want integrity failure", err)
+	}
+}
+
+type failingZIPReadSeeker struct{}
+
+func (failingZIPReadSeeker) Read([]byte) (int, error) { return 0, io.EOF }
+func (failingZIPReadSeeker) Seek(int64, int) (int64, error) {
+	return 0, errors.New("seek failed")
 }
 
 func nestedArchive(t *testing.T, depth int) []byte {

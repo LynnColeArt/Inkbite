@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -34,13 +36,17 @@ jobs:
       - name: Run race detector
         run: go test -race ./...
 
-      - name: Install govulncheck
+      - name: Install pinned quality tools
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
+          go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: Run govulncheck
         run: govulncheck ./...
+
+      - name: Run frozen ingestion quality gate
+        run: make quality COVERAGE_BASE_REF=ee5542edd1ac64b5f66dcb9d0056dd4815739342
 
       - name: Build release archives
         run: make dist VERSION=${GITHUB_REF_NAME}
@@ -49,8 +55,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/*.tar.gz
-            dist/*.zip
+            dist/inkbite_${{ github.ref_name }}_source.tar.gz
+            dist/inkbite_${{ github.ref_name }}_source.zip
             dist/checksums.txt
           fail_on_unmatched_files: true
           generate_release_notes: true

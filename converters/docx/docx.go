@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/LynnColeArt/Inkbite"
+	internalingestion "github.com/LynnColeArt/Inkbite/internal/ingestion"
 	"github.com/LynnColeArt/Inkbite/internal/ooxml"
 )
 
@@ -53,21 +54,51 @@ func (c *Converter) Accepts(
 }
 
 func (c *Converter) Convert(
-	_ context.Context,
+	ctx context.Context,
+	r io.ReadSeeker,
+	info inkbite.StreamInfo,
+	opts inkbite.ConvertOptions,
+) (inkbite.Result, error) {
+	return c.convert(ctx, r, info, opts, inkbite.DefaultIngestionPolicy())
+}
+
+// ConvertDetailed applies the caller's container policy while preserving the
+// converter's legacy text result.
+func (c *Converter) ConvertDetailed(
+	ctx context.Context,
+	r io.ReadSeeker,
+	info inkbite.StreamInfo,
+	opts inkbite.ConvertOptions,
+	policy inkbite.IngestionPolicy,
+) (inkbite.DetailedConversion, error) {
+	result, err := c.convert(ctx, r, info, opts, policy)
+	return inkbite.DetailedConversion{Result: result}, err
+}
+
+func (c *Converter) convert(
+	ctx context.Context,
 	r io.ReadSeeker,
 	info inkbite.StreamInfo,
 	_ inkbite.ConvertOptions,
+	policy inkbite.IngestionPolicy,
 ) (inkbite.Result, error) {
+	ctx, err := docxRequestContext(ctx, policy)
+	if err != nil {
+		return inkbite.Result{}, err
+	}
+	if err := internalingestion.Checkpoint(ctx); err != nil {
+		return inkbite.Result{}, err
+	}
 	if _, err := r.Seek(0, io.SeekStart); err != nil {
 		return inkbite.Result{}, err
 	}
 
-	data, err := io.ReadAll(r)
+	data, err := internalingestion.ReadBounded(ctx, r, policy.MaxSourceBytes)
 	if err != nil {
 		return inkbite.Result{}, err
 	}
 
-	pkg, err := ooxml.Open(data)
+	pkg, err := ooxml.Open(ctx, data.Bytes)
 	if err != nil {
 		return inkbite.Result{}, err
 	}
@@ -121,6 +152,35 @@ func (c *Converter) Convert(
 		Markdown: strings.Join(parts, "\n\n"),
 		Title:    title,
 	}, nil
+}
+
+func docxRequestContext(ctx context.Context, policy inkbite.IngestionPolicy) (context.Context, error) {
+	if _, ok := internalingestion.RequestBudgetFromContext(ctx); ok {
+		return ctx, nil
+	}
+	if policy == (inkbite.IngestionPolicy{}) {
+		policy = inkbite.DefaultIngestionPolicy()
+	}
+	budget, err := internalingestion.NewRequestBudget(docxRequestLimits(policy))
+	if err != nil {
+		return nil, err
+	}
+	return internalingestion.WithRequestBudget(ctx, budget)
+}
+
+func docxRequestLimits(policy inkbite.IngestionPolicy) internalingestion.Limits {
+	return internalingestion.Limits{
+		MaxSourceBytes:         policy.MaxSourceBytes,
+		MaxPrimaryBytes:        policy.MaxPrimaryBytes,
+		MaxArtifacts:           policy.MaxArtifacts,
+		MaxArtifactBytes:       policy.MaxArtifactBytes,
+		MaxTotalArtifactBytes:  policy.MaxTotalArtifactBytes,
+		MaxContainerEntries:    policy.MaxContainerEntries,
+		MaxContainerEntryBytes: policy.MaxContainerEntryBytes,
+		MaxExpandedBytes:       policy.MaxExpandedBytes,
+		MaxContainerDepth:      policy.MaxContainerDepth,
+		MaxExpansionRatio:      policy.MaxExpansionRatio,
+	}
 }
 
 func renderParagraph(node *ooxml.Node, relationships map[string]string) (markdown string, title string) {
