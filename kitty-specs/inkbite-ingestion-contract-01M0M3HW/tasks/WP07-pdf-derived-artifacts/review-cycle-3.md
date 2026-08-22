@@ -9,6 +9,10 @@ reviewed_at: '2026-08-22T13:54:14Z'
 reviewer_agent: codex:gpt-5.6-sol:reviewer-renata:reviewer
 verdict: rejected
 wp_id: WP07
+review_artifact_override_at: "2026-08-22T14:07:24Z"
+review_artifact_override_actor: "operator"
+review_artifact_override_wp_id: "WP07"
+review_artifact_override_reason: "Arbiter approval: terminal verification 921d6b9 independently reproduces red ccaef26 and green 50b5f24; exact start/end artifact-token grammar, canonical ID mapping, mutations, full/race/security/coverage/scope gates pass; retained review cycles 1-3 remain historical evidence"
 ---
 
 # WP07 Review Cycle 3 — Changes Required
