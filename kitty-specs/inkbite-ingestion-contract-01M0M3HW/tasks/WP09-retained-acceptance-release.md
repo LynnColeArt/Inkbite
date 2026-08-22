@@ -62,6 +62,11 @@ owned_files:
 - scripts/changed-coverage.sh
 - .github/workflows/ci.yml
 - Makefile
+- .github/workflows/release.yml
+- scripts/dist.sh
+- README.md
+- ADOPTED_COMPONENTS.md
+- CHANGELOG.md
 role: implementer
 tags:
 - acceptance
@@ -101,6 +106,14 @@ Keep least-privilege Linux/macOS/Windows verification plus race, vulnerability, 
 ### T042 — Terminal frozen-tree evidence
 
 Run each mandatory command once in order, record exact tool versions/bases/numerator/denominator, audit generated/no-diff and exact scope, build deterministic archives twice, and preserve any failure. No tag/release/push/publish/remote mutation.
+
+### Cycle 3 release-boundary amendment
+
+The official artifacts qualified by this mission are reproducible source-only archives. They must contain the exact committed tracked-source manifest required by the release contract and must contain no linked executable, object file, vendored module tree, module-cache material, or third-party dependency source. CI, tag-release workflows, and the legacy distribution script must delegate to one canonical packaging authority and may upload only the qualified source archives plus their checksum manifest. Local and CI binary builds remain verification-only and are never publication inputs.
+
+This amendment resolves the cycle-2 licensing rejection without changing runtime or XLS behavior. The default converter graph links GPL-3.0-only `xlsReader`; no binary produced from that graph is qualified for MIT-only redistribution. A binary-release strategy requires a separate specification and independent license review.
+
+Authorized cycle-3 correction scope is limited to `scripts/verify-ingestion-contract.sh`, `test/acceptance/security_boundaries_test.go`, `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `scripts/dist.sh`, `README.md`, `ADOPTED_COMPONENTS.md`, and `CHANGELOG.md`. `go.mod`, `go.sum`, `Makefile`, `cmd/inkbite/main.go`, `builtins/defaults.go`, and `converters/xls/**` remain frozen.
 
 ## Review Gates
 

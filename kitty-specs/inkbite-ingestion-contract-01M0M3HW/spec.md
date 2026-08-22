@@ -137,7 +137,7 @@ As an existing Inkbite user, I want the richer contract to preserve the current 
 
 | ID | Title | Constraint | Category | Priority | Status |
 |----|-------|------------|----------|----------|--------|
-| C-001 | MIT distribution | New project code remains compatible with Inkbite's MIT license; adopted code or design must be recorded with origin, license, modifications, and attribution obligations. | Legal | High | Open |
+| C-001 | MIT distribution | New project code remains compatible with Inkbite's MIT license; adopted code or design must be recorded with origin, license, modifications, and attribution obligations. Official release artifacts qualified by this mission are reproducible source-only archives: they contain no linked executable, vendored module tree, or third-party dependency source. A default binary links GPL-3.0-only `xlsReader` and must not be published or represented as MIT-only unless a later, independently reviewed release strategy satisfies the applicable GPL and transitive-license obligations. | Legal | High | Open |
 | C-002 | No persistence owner | Inkbite returns bytes and verification metadata but does not choose Nano Kitty's durable storage location, cleanup timing, or retention policy. | Architecture | High | Open |
 | C-003 | No automatic network expansion | Conversion may not download models, components, schemas, linked media, or secondary documents unless a distinct caller-granted capability explicitly allows that class of access. | Security | High | Open |
 | C-004 | One conversion path | Rich results must extend the existing engine and converter registry; a second privileged ingestion implementation is forbidden. | Architecture | High | Open |
@@ -176,5 +176,5 @@ As an existing Inkbite user, I want the richer contract to preserve the current 
 - **SC-004**: Remote-policy tests prove zero calls while disabled and deny all enumerated private/address-class and redirect bypass cases while preserving an explicitly authorized public fixture path.
 - **SC-005**: One-byte mutation, missing-artifact, duplicate-identity, invalid-reference, and cross-envelope substitution tests all fail public verification.
 - **SC-006**: Existing API, custom-converter, CLI, and format suites remain green without callers adopting the new fields.
-- **SC-007**: Release qualification reports no functional regression, concurrency defect, known reachable vulnerability, licensing violation, portability drift, or quality-threshold failure on the final deliverable.
+- **SC-007**: Release qualification reports no functional regression, concurrency defect, known reachable vulnerability, licensing violation, portability drift, or quality-threshold failure on the final source-only deliverable, and proves that official publication workflows cannot upload a linked executable or unqualified dependency bundle.
 - **SC-008**: The mission ships public contract documentation and an adopted-components record sufficient for a host integrator to implement retention without reading Inkbite internals.
