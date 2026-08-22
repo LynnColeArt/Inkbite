@@ -92,3 +92,4 @@ Report artifact ordering/relationships, legacy snapshots, limit/mutation evidenc
 
 - 2026-08-22 — Prompt generated from the approved mission artifacts.
 - 2026-08-22T12:45:26Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Assigned agent via action command
+- 2026-08-22T13:07:41Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Ready for review: deterministic owned PDF image artifacts and inkbite-artifact references; legacy Convert/CLI KeepDataURIs behavior preserved through shared dispatch. Red 5f8dd1c; green c176881; hardening 766f43c. Go 1.26.6 PDF count20/race5, full normal/race, vet, build, module, staticcheck, govuln zero reachable, diff, Windows compile, CLI, 83.720930% fixed-base changed coverage, and three mutations pass. Exact scope: four WP PDF files plus authorized engine.go, ingestion.go, ingestion_test.go, conversion_integration_test.go.
