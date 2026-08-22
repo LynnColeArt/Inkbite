@@ -142,7 +142,7 @@ As an existing Inkbite user, I want the richer contract to preserve the current 
 | C-003 | No automatic network expansion | Conversion may not download models, components, schemas, linked media, or secondary documents unless a distinct caller-granted capability explicitly allows that class of access. | Security | High | Open |
 | C-004 | One conversion path | Rich results must extend the existing engine and converter registry; a second privileged ingestion implementation is forbidden. | Architecture | High | Open |
 | C-005 | Streaming future compatibility | The contract may buffer within current limits, but identities, artifacts, and policy must not preclude a future streaming implementation. | Architecture | Medium | Open |
-| C-006 | Canonical digest | Content identities use lowercase hexadecimal SHA-256 over exact bytes; display labels, paths, timestamps, and memory addresses are excluded from content identity. | Technical | High | Open |
+| C-006 | Canonical digest | Content identities use `sha256:<lowercase hexadecimal>` over exact bytes; display labels, paths, timestamps, and memory addresses are excluded from content identity. | Technical | High | Open |
 | C-007 | Immutable result ownership | Returned byte slices must not alias caller-owned mutable buffers or internal scratch buffers across results. | Technical | High | Open |
 | C-008 | Existing format semantics | The mission does not promise new document formats, OCR quality, image captioning, transcription, or high-fidelity layout reconstruction. | Product | Medium | Open |
 
