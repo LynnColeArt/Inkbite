@@ -21,7 +21,7 @@ subtasks:
 - T035
 - T036
 - T037
-agent: "codex:gpt-5.6-sol:curator-carla:implementer"
+agent: "codex:gpt-5.6-sol:reviewer-renata:reviewer"
 shell_pid: "2667806"
 history:
 - at: '2026-08-22T00:00:00Z'
@@ -102,3 +102,5 @@ Handoff includes compile evidence, CLI snapshots, schema/Go conformance, checked
 - 2026-08-22 — Prompt generated from the approved mission artifacts.
 - 2026-08-22T14:09:21Z – codex:gpt-5.6-sol:curator-carla:implementer – shell_pid=2667806 – Started implementation via action command
 - 2026-08-22T14:30:38Z – codex:gpt-5.6-sol:curator-carla:implementer – shell_pid=2667806 – Ready for review: red d71a63d established external legacy compatibility, immutable schema/Go roundtrip, CLI snapshots, documentation vocabulary, and link checks; green a6e960c published evidence-bound API/security/durability/component/adoption docs; 26e961b pinned exact upstream license notices. External consumer compilation proves positional/equality/map-key Result, custom legacy Converter, registration/options, all Convert entry points, additive Ingest, and pure mutation-detecting VerifyEnvelope. CLI snapshots cover exact Markdown success, unsupported, malformed, cancellation, path/output/hints/formats, disabled remote, and no-transport fail-closed behavior without changing frozen main.go/Result/defaults. Gates pass: gofmt; go test contract+CLI; go test ./...; go test -race ./...; go vet ./...; staticcheck ./...; go build ./...; go mod verify; GOTOOLCHAIN=go1.26.6 govulncheck reports 0 reachable vulnerabilities; git diff --check; ruff N/A no Python. Relative links resolve; exact upstream/license URLs returned HTTP 200. Scope exact eight owned files. ADOPTED_COMPONENTS distinguishes inspiration/no copied inventory/direct dependencies and flags xlsReader GPL-3.0-only binary-distribution obligations rather than mislabeling Inkbite MIT-only. Force only acknowledges pre-existing shared status.events ancestry intentionally integrated before WP08; no planning artifact was authored or reverted by WP08.
+- 2026-08-22T14:32:29Z – codex:gpt-5.6-sol:reviewer-renata:reviewer – shell_pid=2667806 – Started review via action command
+- 2026-08-22T14:38:22Z – user – shell_pid=2667806 – Review passed: red d71a63d reproduced; green a6e960c and license pin 26e961b satisfy external compatibility, exact CLI behavior, immutable schema/API conformance, evidence-bound security and durability documentation, and accurate civic adoption obligations. Integration merge 74aaa8b was audited separately; WP08 scope is exactly the eight authorized files. Force only acknowledges pre-existing same-mission status.events ancestry inherited before WP08; WP08 authored no planning artifact. Full, race, vet, staticcheck, govulncheck, build, module, diff, frozen-surface, cross-platform, coverage, and link gates pass.
