@@ -171,9 +171,7 @@ func TestRunConvertCancellationSnapshot(t *testing.T) {
 	code := run([]string{"--timeout", "1h", path}, &stdout, &stderr, runtimeDeps{
 		version: "test",
 		timeoutContext: func(parent context.Context, _ time.Duration) (context.Context, context.CancelFunc) {
-			ctx, cancel := context.WithCancel(parent)
-			cancel()
-			return ctx, cancel
+			return context.WithDeadline(parent, time.Unix(0, 0))
 		},
 	})
 	if code != 1 {
