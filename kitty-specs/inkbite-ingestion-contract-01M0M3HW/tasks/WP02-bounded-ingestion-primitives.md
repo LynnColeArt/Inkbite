@@ -110,3 +110,4 @@ Report red/green commits, boundary table, mutation proof, raw coverage, and exac
 - 2026-08-22T09:47:35Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Assigned agent via action command
 - 2026-08-22T10:09:20Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Ready for review: red 517b701; green 9338e00 plus cancellation hardening f375d57; exact eight-file internal/ingestion scope; Go 1.26.6 focused 20x/race 5x and full normal/race/vet/build/mod/static/security gates pass; 92.4% raw coverage; bounded, budget, sanitize, and cancellation guard deletions each red then restored.
 - 2026-08-22T10:10:26Z – codex:gpt-5.6-sol:reviewer-renata:reviewer – shell_pid=2667806 – Started review via action command
+- 2026-08-22T10:21:10Z – user – shell_pid=2667806 – Moved to planned
