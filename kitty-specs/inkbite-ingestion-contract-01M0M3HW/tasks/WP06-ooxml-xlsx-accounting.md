@@ -18,7 +18,8 @@ subtasks:
 - T026
 - T027
 - T028
-agent: codex
+agent: "codex:gpt-5.6-sol:implementer-ivan:implementer"
+shell_pid: "2667806"
 history:
 - at: '2026-08-22T00:00:00Z'
   actor: codex
@@ -103,3 +104,4 @@ Handoff includes preflight proof, hostile matrix, legacy fidelity hashes, cancel
 ## Activity Log
 
 - 2026-08-22 — Prompt generated from the approved mission artifacts.
+- 2026-08-22T12:45:22Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Assigned agent via action command

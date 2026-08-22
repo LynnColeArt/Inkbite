@@ -19,7 +19,8 @@ subtasks:
 - T022
 - T023
 - T024
-agent: codex
+agent: "codex:gpt-5.6-sol:implementer-ivan:implementer"
+shell_pid: "2667806"
 history:
 - at: '2026-08-22T00:00:00Z'
   actor: codex
@@ -94,3 +95,4 @@ Handoff includes deterministic red bombs (not giant fixtures), nested ledger evi
 ## Activity Log
 
 - 2026-08-22 — Prompt generated from the approved mission artifacts.
+- 2026-08-22T12:45:17Z – codex:gpt-5.6-sol:implementer-ivan:implementer – shell_pid=2667806 – Assigned agent via action command
