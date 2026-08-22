@@ -23,6 +23,10 @@ arbiter_override:
     should_follow_on: false
   decided_at: '2026-08-22T09:13:16Z'
 wp_id: WP01
+review_artifact_override_at: "2026-08-22T09:46:15Z"
+review_artifact_override_actor: "codex:gpt-5.6-sol:architect-alphonso:architect"
+review_artifact_override_wp_id: "WP01"
+review_artifact_override_reason: "[custom] Binding arbiter verification passed on 68269b6 under ruling fa72675; evidence: WP01-public-envelope-verification/arbiter-verification.md. This is the authorized terminal disposition, not ordinary review cycle 4."
 ---
 
 # WP01 Review Cycle 3 — Changes Requested (Arbiter Required)
