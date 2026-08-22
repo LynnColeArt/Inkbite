@@ -345,6 +345,12 @@ func TestSourcePackagingDoesNotRequireGNUTarCreationFlags(t *testing.T) {
 			t.Errorf("source packaging depends on GNU tar flag %q", flag)
 		}
 	}
+	if bytes.Contains(script, []byte(`[[ -x "$relative" ]]`)) {
+		t.Error("source packaging infers archive execute bits from the extracted host filesystem")
+	}
+	if !bytes.Contains(script, []byte("verify-modes")) {
+		t.Error("source packaging does not inspect archive modes directly")
+	}
 }
 
 func TestQualityCleanlinessAllowsOnlyUnchangedPreexistingReviewLock(t *testing.T) {
@@ -541,6 +547,9 @@ func TestSourceOnlyReleaseContractAndArchiveMutations(t *testing.T) {
 			}
 			addZIPEntry(t, mutated, "inkbite_contract_source/README.md", readme)
 		}},
+		{name: "executable file mode", mutate: func(t *testing.T, mutated string) {
+			makeZIPEntryExecutable(t, mutated, "inkbite_contract_source/README.md")
+		}},
 	}
 	for _, mutation := range mutations {
 		t.Run(mutation.name, func(t *testing.T) {
@@ -690,6 +699,61 @@ func addZIPEntry(t *testing.T, dist, name string, contents []byte) {
 func removeZIPEntry(t *testing.T, dist, name string) {
 	t.Helper()
 	rewriteZIPEntry(t, filepath.Join(dist, "inkbite_contract_source.zip"), name, nil, false)
+}
+
+func makeZIPEntryExecutable(t *testing.T, dist, name string) {
+	t.Helper()
+	archivePath := filepath.Join(dist, "inkbite_contract_source.zip")
+	source, err := zip.OpenReader(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	temporary, err := os.CreateTemp(filepath.Dir(archivePath), "mutated-*.zip")
+	if err != nil {
+		_ = source.Close()
+		t.Fatal(err)
+	}
+	temporaryPath := temporary.Name()
+	writer := zip.NewWriter(temporary)
+	for _, file := range source.File {
+		header := file.FileHeader
+		if file.Name == name {
+			header.SetMode(0o755)
+		}
+		destination, createErr := writer.CreateHeader(&header)
+		if createErr != nil {
+			t.Fatal(createErr)
+		}
+		if file.FileInfo().IsDir() {
+			continue
+		}
+		input, openErr := file.Open()
+		if openErr != nil {
+			t.Fatal(openErr)
+		}
+		if _, copyErr := io.Copy(destination, input); copyErr != nil {
+			_ = input.Close()
+			t.Fatal(copyErr)
+		}
+		if closeErr := input.Close(); closeErr != nil {
+			t.Fatal(closeErr)
+		}
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := temporary.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := source.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(archivePath); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(temporaryPath, archivePath); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func rewriteZIPEntry(t *testing.T, archivePath, name string, contents []byte, add bool) {
