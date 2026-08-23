@@ -38,6 +38,49 @@ func TestDefaultIngestionPolicyMatchesPublicContract(t *testing.T) {
 	}
 }
 
+func TestV1AbsoluteByteCeilingsMatchSchemaAndDocumentation(t *testing.T) {
+	const (
+		largeCeiling    = int64(256 << 20)
+		artifactCeiling = int64(32 << 20)
+	)
+	if inkbite.V1MaxSourceBytes != largeCeiling || inkbite.V1MaxPrimaryBytes != largeCeiling || inkbite.V1MaxArtifactBytes != artifactCeiling {
+		t.Fatalf("v1 Go ceilings = source:%d primary:%d artifact:%d", inkbite.V1MaxSourceBytes, inkbite.V1MaxPrimaryBytes, inkbite.V1MaxArtifactBytes)
+	}
+
+	var schema map[string]any
+	if err := json.Unmarshal(readRepoFile(t, "kitty-specs", "inkbite-ingestion-contract-01M0M3HW", "contracts", "ingestion-envelope-v1.schema.json"), &schema); err != nil {
+		t.Fatal(err)
+	}
+	definitions := schema["$defs"].(map[string]any)
+	maximum := func(name string) int64 {
+		definition := definitions[name].(map[string]any)
+		properties := definition["properties"].(map[string]any)
+		byteLength := properties["byte_length"].(map[string]any)
+		return int64(byteLength["maximum"].(float64))
+	}
+	if got := maximum("source"); got != inkbite.V1MaxSourceBytes {
+		t.Fatalf("schema source maximum = %d, want %d", got, inkbite.V1MaxSourceBytes)
+	}
+	if got := maximum("primary"); got != inkbite.V1MaxPrimaryBytes {
+		t.Fatalf("schema primary maximum = %d, want %d", got, inkbite.V1MaxPrimaryBytes)
+	}
+	if got := maximum("artifact"); got != inkbite.V1MaxArtifactBytes {
+		t.Fatalf("schema artifact maximum = %d, want %d", got, inkbite.V1MaxArtifactBytes)
+	}
+
+	for name, required := range map[string][]string{
+		"README.md":       {"V1MaxSourceBytes", "V1MaxPrimaryBytes", "V1MaxArtifactBytes", "256 MiB", "32 MiB"},
+		"INKBITE_SPEC.md": {"V1MaxSourceBytes", "V1MaxPrimaryBytes", "V1MaxArtifactBytes", "268435456", "33554432"},
+	} {
+		content := string(readRepoFile(t, name))
+		for _, token := range required {
+			if !strings.Contains(content, token) {
+				t.Errorf("%s lacks v1 ceiling mirror token %q", name, token)
+			}
+		}
+	}
+}
+
 func TestGoEnvelopeRoundTripsThroughApprovedJSONSchema(t *testing.T) {
 	converter := &legacyConverter{}
 	engine := inkbite.New()

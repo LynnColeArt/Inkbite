@@ -21,8 +21,6 @@ var (
 	artifactIDPattern      = regexp.MustCompile(`^artifact-[0-9]{6}$`)
 )
 
-const v1MaxByteLength int64 = 32 << 20
-
 // VerificationCategory is a stable class of pure-verification finding.
 type VerificationCategory string
 
@@ -146,7 +144,7 @@ func (v *envelopeVerifier) verifySource() {
 	if source.ByteLength > v.envelope.Provenance.Policy.MaxSourceBytes {
 		v.add(VerificationPolicy, "source.byte_length", "source exceeds effective policy")
 	}
-	if source.ByteLength > v1MaxByteLength {
+	if source.ByteLength > V1MaxSourceBytes {
 		v.add(VerificationPolicy, "source.byte_length", "source exceeds the v1 contract ceiling")
 	}
 	if !validSourceKind(source.SourceKind) {
@@ -174,7 +172,7 @@ func (v *envelopeVerifier) verifyPrimary() {
 	if !utf8.Valid(primary.Bytes) {
 		v.add(VerificationShape, "primary.bytes", "primary artifact is not valid UTF-8")
 	}
-	v.verifyArtifact(primary, "primary", v.envelope.Provenance.Policy.MaxPrimaryBytes)
+	v.verifyArtifact(primary, "primary", v.envelope.Provenance.Policy.MaxPrimaryBytes, V1MaxPrimaryBytes)
 }
 
 func (v *envelopeVerifier) verifyArtifacts() {
@@ -211,7 +209,7 @@ func (v *envelopeVerifier) verifyArtifacts() {
 		if artifact.Role == "" || artifact.Role == ArtifactRolePrimaryMarkdown || !safePublicText(string(artifact.Role)) {
 			v.add(VerificationShape, path+".role", "derived artifact role is invalid")
 		}
-		v.verifyArtifact(artifact, path, policy.MaxArtifactBytes)
+		v.verifyArtifact(artifact, path, policy.MaxArtifactBytes, V1MaxArtifactBytes)
 		total += artifact.ByteLength
 	}
 	if total < 0 || total > policy.MaxTotalArtifactBytes {
@@ -219,7 +217,7 @@ func (v *envelopeVerifier) verifyArtifacts() {
 	}
 }
 
-func (v *envelopeVerifier) verifyArtifact(artifact ContentArtifact, path string, maxBytes int64) {
+func (v *envelopeVerifier) verifyArtifact(artifact ContentArtifact, path string, maxBytes, contractMaxBytes int64) {
 	v.registerID(artifact.ArtifactID, path+".artifact_id")
 	if artifact.Bytes == nil {
 		v.add(VerificationShape, path+".bytes", "required bytes are null")
@@ -235,7 +233,7 @@ func (v *envelopeVerifier) verifyArtifact(artifact ContentArtifact, path string,
 	if artifact.ByteLength > maxBytes {
 		v.add(VerificationPolicy, path+".byte_length", "artifact exceeds effective policy")
 	}
-	if artifact.ByteLength > v1MaxByteLength {
+	if artifact.ByteLength > contractMaxBytes {
 		v.add(VerificationPolicy, path+".byte_length", "artifact exceeds the v1 contract ceiling")
 	}
 	if !artifactIDPattern.MatchString(artifact.ArtifactID) {

@@ -203,6 +203,11 @@ category.
 | `Remote.Enabled` | `false` |
 | `Component` | empty |
 
+A caller may explicitly select finite source and primary limits through
+`V1MaxSourceBytes` and `V1MaxPrimaryBytes`, both 256 MiB. These are absolute
+v1 ceilings, not new defaults. `V1MaxArtifactBytes` remains 32 MiB for each
+derived artifact. The verifier and JSON schema enforce the same boundaries.
+
 A completely zero `IngestOptions.Policy` materializes these defaults. A
 partially populated policy is not merged with defaults; it is validated as the
 caller's explicit policy.

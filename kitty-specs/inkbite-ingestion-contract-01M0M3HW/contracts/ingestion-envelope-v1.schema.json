@@ -8,7 +8,7 @@
   "properties": {
     "contract_version": {"const": "inkbite.ingestion/v1"},
     "source": {"$ref": "#/$defs/source"},
-    "primary": {"$ref": "#/$defs/artifact"},
+    "primary": {"$ref": "#/$defs/primary"},
     "artifacts": {
       "type": "array",
       "maxItems": 256,
@@ -32,7 +32,7 @@
       "properties": {
         "bytes": {"type": "string", "contentEncoding": "base64"},
         "identity": {"$ref": "#/$defs/identity"},
-        "byte_length": {"type": "integer", "minimum": 0, "maximum": 33554432},
+        "byte_length": {"type": "integer", "minimum": 0, "maximum": 268435456},
         "media_type": {"type": "string"},
         "source_kind": {"type": "string", "enum": ["bytes", "reader", "file", "data_uri", "remote"]},
         "safe_name": {"type": "string"}
@@ -69,6 +69,22 @@
         "bytes": {"type": "string", "contentEncoding": "base64"},
         "identity": {"$ref": "#/$defs/identity"},
         "byte_length": {"type": "integer", "minimum": 0, "maximum": 33554432},
+        "media_type": {"type": "string", "minLength": 1},
+        "safe_name": {"type": "string"},
+        "relations": {"type": "array", "items": {"$ref": "#/$defs/relation"}},
+        "attributes": {"type": "array", "items": {"$ref": "#/$defs/fact"}}
+      }
+    },
+    "primary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_id", "role", "bytes", "identity", "byte_length", "media_type", "relations", "attributes"],
+      "properties": {
+        "artifact_id": {"type": "string", "pattern": "^artifact-[0-9]{6}$"},
+        "role": {"type": "string"},
+        "bytes": {"type": "string", "contentEncoding": "base64"},
+        "identity": {"$ref": "#/$defs/identity"},
+        "byte_length": {"type": "integer", "minimum": 0, "maximum": 268435456},
         "media_type": {"type": "string", "minLength": 1},
         "safe_name": {"type": "string"},
         "relations": {"type": "array", "items": {"$ref": "#/$defs/relation"}},

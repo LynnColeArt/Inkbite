@@ -133,6 +133,12 @@ the background.
 | `Remote.Enabled` | `false` |
 | `Component` | `""` |
 
+The additive v1 contract also exports `V1MaxSourceBytes` and
+`V1MaxPrimaryBytes` at `268435456`. Callers must opt in with a complete finite
+policy; the values do not widen either 32 MiB default. The absolute per-derived
+artifact ceiling remains `V1MaxArtifactBytes == 33554432`. Go verification and
+the envelope schema mirror these three values.
+
 The zero `IngestOptions.Policy` selects these defaults. A nonzero policy is
 validated as supplied; missing fields are not filled independently.
 

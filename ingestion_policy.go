@@ -13,6 +13,9 @@ const (
 	DefaultMaxExpandedBytes       int64   = 32 << 20
 	DefaultMaxContainerDepth              = 4
 	DefaultMaxExpansionRatio      float64 = 1000
+	V1MaxSourceBytes              int64   = 256 << 20
+	V1MaxPrimaryBytes             int64   = 256 << 20
+	V1MaxArtifactBytes            int64   = 32 << 20
 )
 
 // RemotePolicy records remote authority. It is disabled by default.

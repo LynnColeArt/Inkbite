@@ -503,32 +503,32 @@ func TestVerifyEnvelopeAllowsRelativeLogicalLocations(t *testing.T) {
 }
 
 func TestVerifyEnvelopeEnforcesAbsoluteV1ByteCeilings(t *testing.T) {
-	const ceiling = DefaultMaxSourceBytes
-	atLimit := make([]byte, ceiling)
-	overLimit := make([]byte, ceiling+1)
-
 	tests := []struct {
-		name string
-		path string
-		set  func(*IngestionEnvelope, []byte)
+		name    string
+		path    string
+		ceiling int64
+		set     func(*IngestionEnvelope, []byte)
 	}{
 		{
-			name: "source",
-			path: "source.byte_length",
+			name:    "source",
+			path:    "source.byte_length",
+			ceiling: V1MaxSourceBytes,
 			set: func(e *IngestionEnvelope, data []byte) {
 				setEnvelopeSourceAndPrimaryBytes(e, data, e.Primary.Bytes)
 			},
 		},
 		{
-			name: "primary",
-			path: "primary.byte_length",
+			name:    "primary",
+			path:    "primary.byte_length",
+			ceiling: V1MaxPrimaryBytes,
 			set: func(e *IngestionEnvelope, data []byte) {
 				setEnvelopeSourceAndPrimaryBytes(e, e.Source.Bytes, data)
 			},
 		},
 		{
-			name: "derivative",
-			path: "artifacts[0].byte_length",
+			name:    "derivative",
+			path:    "artifacts[0].byte_length",
+			ceiling: V1MaxArtifactBytes,
 			set: func(e *IngestionEnvelope, data []byte) {
 				e.Artifacts[0].Bytes = data
 				e.Artifacts[0].ByteLength = int64(len(data))
@@ -540,6 +540,8 @@ func TestVerifyEnvelopeEnforcesAbsoluteV1ByteCeilings(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			overLimit := bytes.Repeat([]byte("a"), int(tc.ceiling+1))
+			atLimit := overLimit[:tc.ceiling:tc.ceiling]
 			for _, boundary := range []struct {
 				name  string
 				bytes []byte
@@ -549,11 +551,12 @@ func TestVerifyEnvelopeEnforcesAbsoluteV1ByteCeilings(t *testing.T) {
 				{name: "limit_plus_one", bytes: overLimit},
 			} {
 				t.Run(boundary.name, func(t *testing.T) {
+					t.Logf("actual_bytes=%d sha256=%s", len(boundary.bytes), independentIdentity(boundary.bytes))
 					envelope := validEnvelopeFixture()
-					envelope.Provenance.Policy.MaxSourceBytes = ceiling + 1
-					envelope.Provenance.Policy.MaxPrimaryBytes = ceiling + 1
-					envelope.Provenance.Policy.MaxArtifactBytes = ceiling + 1
-					envelope.Provenance.Policy.MaxTotalArtifactBytes = ceiling + 1
+					envelope.Provenance.Policy.MaxSourceBytes = V1MaxSourceBytes + 1
+					envelope.Provenance.Policy.MaxPrimaryBytes = V1MaxPrimaryBytes + 1
+					envelope.Provenance.Policy.MaxArtifactBytes = V1MaxArtifactBytes + 1
+					envelope.Provenance.Policy.MaxTotalArtifactBytes = V1MaxArtifactBytes + 1
 					tc.set(&envelope, boundary.bytes)
 
 					report := VerifyEnvelope(envelope)
