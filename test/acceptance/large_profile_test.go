@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"errors"
+	"io"
 	"os"
+	"reflect"
 	"runtime"
 	"strconv"
 	"testing"
@@ -114,6 +117,93 @@ func TestExplicitLargePolicyRepresentativeFamiliesAtExactBoundary(t *testing.T) 
 		})
 		runtime.GC()
 	}
+}
+
+func TestExplicitLargePolicyPublicPathRejectsLimitPlusOneWithZeroEnvelope(t *testing.T) {
+	if os.Getenv("INKBITE_LARGE_PROFILE_QUALIFICATION") != "1" {
+		t.Skip("run the sequential large-profile gate with INKBITE_LARGE_PROFILE_QUALIFICATION=1")
+	}
+	if testing.Short() {
+		t.Fatal("large-profile qualification cannot be skipped in short mode")
+	}
+
+	tests := []struct {
+		name        string
+		makeSource  func() []byte
+		makePrimary func() []byte
+		policy      func() inkbite.IngestionPolicy
+	}{
+		{
+			name:        "source",
+			makeSource:  func() []byte { return bytes.Repeat([]byte("s"), int(inkbite.V1MaxSourceBytes+1)) },
+			makePrimary: func() []byte { return []byte("small primary\n") },
+			policy: func() inkbite.IngestionPolicy {
+				policy := inkbite.DefaultIngestionPolicy()
+				policy.MaxSourceBytes = inkbite.V1MaxSourceBytes + 1
+				return policy
+			},
+		},
+		{
+			name:        "primary",
+			makeSource:  func() []byte { return []byte("small source\n") },
+			makePrimary: func() []byte { return bytes.Repeat([]byte("p"), int(inkbite.V1MaxPrimaryBytes+1)) },
+			policy: func() inkbite.IngestionPolicy {
+				policy := inkbite.DefaultIngestionPolicy()
+				policy.MaxPrimaryBytes = inkbite.V1MaxPrimaryBytes + 1
+				return policy
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			source := tc.makeSource()
+			primary := tc.makePrimary()
+			engine := inkbite.New()
+			engine.RegisterConverter(largeBoundaryProbe{primary: primary})
+			envelope, err := engine.Ingest(
+				context.Background(),
+				source,
+				&inkbite.StreamInfo{Filename: "boundary.limit", Extension: ".limit"},
+				inkbite.IngestOptions{Policy: tc.policy()},
+			)
+			if err == nil || !errors.Is(err, inkbite.ErrIntegrityFailure) {
+				t.Fatalf("Ingest() error = %v, want integrity failure", err)
+			}
+			if !reflect.DeepEqual(envelope, inkbite.IngestionEnvelope{}) {
+				t.Fatalf("Ingest() returned authoritative partial envelope: %#v", envelope)
+			}
+			material := source
+			if tc.name == "primary" {
+				material = primary
+			}
+			digest := sha256.Sum256(material)
+			t.Logf("surface=%s actual_bytes=%d sha256=%x", tc.name, len(material), digest)
+		})
+		runtime.GC()
+	}
+}
+
+type largeBoundaryProbe struct {
+	primary []byte
+}
+
+func (largeBoundaryProbe) Name() string      { return "large-boundary-probe" }
+func (largeBoundaryProbe) Priority() float64 { return 1 }
+func (largeBoundaryProbe) Accepts(context.Context, io.ReadSeeker, inkbite.StreamInfo, inkbite.ConvertOptions) bool {
+	return true
+}
+func (probe largeBoundaryProbe) Convert(context.Context, io.ReadSeeker, inkbite.StreamInfo, inkbite.ConvertOptions) (inkbite.Result, error) {
+	return inkbite.Result{Markdown: string(probe.primary)}, nil
+}
+func (probe largeBoundaryProbe) ConvertDetailed(
+	context.Context,
+	io.ReadSeeker,
+	inkbite.StreamInfo,
+	inkbite.ConvertOptions,
+	inkbite.IngestionPolicy,
+) (inkbite.DetailedConversion, error) {
+	return inkbite.DetailedConversion{Result: inkbite.Result{Markdown: string(probe.primary)}}, nil
 }
 
 func prependToExactSize(t *testing.T, trailer []byte, target int) []byte {
