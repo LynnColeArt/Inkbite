@@ -20,7 +20,7 @@ import (
 )
 
 func TestExplicitLargePolicyRepresentativeFamiliesAtExactBoundary(t *testing.T) {
-	const boundary = int(inkbite.V1MaxSourceBytes)
+	const boundary = 256 << 20
 	if os.Getenv("INKBITE_LARGE_PROFILE_QUALIFICATION") != "1" {
 		t.Skip("run the sequential large-profile gate with INKBITE_LARGE_PROFILE_QUALIFICATION=1")
 	}
@@ -120,6 +120,7 @@ func TestExplicitLargePolicyRepresentativeFamiliesAtExactBoundary(t *testing.T) 
 }
 
 func TestExplicitLargePolicyPublicPathRejectsLimitPlusOneWithZeroEnvelope(t *testing.T) {
+	const qualifiedLargeCeiling = int64(256 << 20)
 	if os.Getenv("INKBITE_LARGE_PROFILE_QUALIFICATION") != "1" {
 		t.Skip("run the sequential large-profile gate with INKBITE_LARGE_PROFILE_QUALIFICATION=1")
 	}
@@ -135,21 +136,21 @@ func TestExplicitLargePolicyPublicPathRejectsLimitPlusOneWithZeroEnvelope(t *tes
 	}{
 		{
 			name:        "source",
-			makeSource:  func() []byte { return bytes.Repeat([]byte("s"), int(inkbite.V1MaxSourceBytes+1)) },
+			makeSource:  func() []byte { return bytes.Repeat([]byte("s"), int(qualifiedLargeCeiling+1)) },
 			makePrimary: func() []byte { return []byte("small primary\n") },
 			policy: func() inkbite.IngestionPolicy {
 				policy := inkbite.DefaultIngestionPolicy()
-				policy.MaxSourceBytes = inkbite.V1MaxSourceBytes + 1
+				policy.MaxSourceBytes = qualifiedLargeCeiling + 1
 				return policy
 			},
 		},
 		{
 			name:        "primary",
 			makeSource:  func() []byte { return []byte("small source\n") },
-			makePrimary: func() []byte { return bytes.Repeat([]byte("p"), int(inkbite.V1MaxPrimaryBytes+1)) },
+			makePrimary: func() []byte { return bytes.Repeat([]byte("p"), int(qualifiedLargeCeiling+1)) },
 			policy: func() inkbite.IngestionPolicy {
 				policy := inkbite.DefaultIngestionPolicy()
-				policy.MaxPrimaryBytes = inkbite.V1MaxPrimaryBytes + 1
+				policy.MaxPrimaryBytes = qualifiedLargeCeiling + 1
 				return policy
 			},
 		},
