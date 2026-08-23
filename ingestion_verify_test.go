@@ -572,6 +572,57 @@ func TestVerifyEnvelopeEnforcesAbsoluteV1ByteCeilings(t *testing.T) {
 	}
 }
 
+func TestVerifyEnvelopeExplicitLargePolicyCrossesStandardByteCeiling(t *testing.T) {
+	const standardCeiling = DefaultMaxSourceBytes
+	const explicitLargeCeiling = 256 << 20
+	overStandard := bytes.Repeat([]byte("a"), int(standardCeiling+1))
+	t.Logf("actual_bytes=%d sha256=%s", len(overStandard), independentIdentity(overStandard))
+
+	for _, tc := range []struct {
+		name string
+		set  func(*IngestionEnvelope, []byte)
+	}{
+		{
+			name: "source",
+			set: func(envelope *IngestionEnvelope, data []byte) {
+				setEnvelopeSourceAndPrimaryBytes(envelope, data, envelope.Primary.Bytes)
+			},
+		},
+		{
+			name: "primary",
+			set: func(envelope *IngestionEnvelope, data []byte) {
+				setEnvelopeSourceAndPrimaryBytes(envelope, envelope.Source.Bytes, data)
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			envelope := validEnvelopeFixture()
+			envelope.Provenance.Policy.MaxSourceBytes = explicitLargeCeiling
+			envelope.Provenance.Policy.MaxPrimaryBytes = explicitLargeCeiling
+			tc.set(&envelope, overStandard)
+
+			if report := VerifyEnvelope(envelope); !report.Valid {
+				t.Fatalf("VerifyEnvelope() rejected explicit large policy at 32 MiB + 1: %#v", report)
+			}
+		})
+	}
+
+	t.Run("standard_policy_still_rejects_limit_plus_one", func(t *testing.T) {
+		envelope := validEnvelopeFixture()
+		setEnvelopeSourceAndPrimaryBytes(&envelope, overStandard, envelope.Primary.Bytes)
+		report := VerifyEnvelope(envelope)
+		if report.Valid || !hasFindingAtPath(report, VerificationPolicy, "source.byte_length") {
+			t.Fatalf("VerifyEnvelope() = %#v, want standard policy rejection", report)
+		}
+	})
+
+	t.Run("contract_version_unchanged", func(t *testing.T) {
+		if IngestionContractV1 != "inkbite.ingestion/v1" {
+			t.Fatalf("IngestionContractV1 = %q", IngestionContractV1)
+		}
+	})
+}
+
 func TestVerifyEnvelopeRequiresCanonicalUTF8Primary(t *testing.T) {
 	tests := []struct {
 		name  string
